@@ -80,7 +80,7 @@ class DayDetailSheet(
         )
 
         val amount = TextView(context).apply {
-            text = "+$amountMl ml"
+            text = context.getString(R.string.day_record_amount, amountMl)
             textSize = 14f
             setTextColor(Palette.ACCENT)
             includeFontPadding = false
@@ -101,7 +101,7 @@ class DayDetailSheet(
             setPadding(dpInt(8f), dpInt(8f), dpInt(8f), dpInt(8f))
             setOnClickListener {
                 store.remove(epochDay, id)
-                Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.record_deleted, Toast.LENGTH_SHORT).show()
                 render()
             }
             TouchFx.press(this, 0.88f)

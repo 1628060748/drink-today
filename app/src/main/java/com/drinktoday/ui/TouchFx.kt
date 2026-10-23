@@ -12,6 +12,7 @@ import android.view.animation.OvershootInterpolator
  */
 object TouchFx {
 
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
     fun press(view: View, scale: Float = 0.955f) {
         view.isClickable = true
         val touchSlop = ViewConfiguration.get(view.context).scaledTouchSlop

@@ -37,6 +37,9 @@ class WheelPicker @JvmOverloads constructor(
     private val scroller = OverScroller(context)
     private var dragging = false
     private var lastTouchY = 0f
+    private var downY = 0f
+    private var moved = false
+    private val touchSlop = android.view.ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     private var velocityTracker: android.view.VelocityTracker? = null
 
     var onSelectionChanged: ((Int) -> Unit)? = null
@@ -145,6 +148,8 @@ class WheelPicker @JvmOverloads constructor(
                 settleAnimator?.cancel()
                 velocityTracker = android.view.VelocityTracker.obtain().also { it.addMovement(event) }
                 lastTouchY = event.y
+                downY = event.y
+                moved = false
                 dragging = true
             }
 
@@ -152,6 +157,7 @@ class WheelPicker @JvmOverloads constructor(
                 velocityTracker?.addMovement(event)
                 val dy = event.y - lastTouchY
                 lastTouchY = event.y
+                if (!moved && abs(event.y - downY) > touchSlop) moved = true
                 if (dragging) applyScroll(scrollPos - dy / itemHeight)
             }
 
@@ -165,10 +171,17 @@ class WheelPicker @JvmOverloads constructor(
                 velocityTracker = null
                 parent?.requestDisallowInterceptTouchEvent(false)
                 dragging = false
-                if (abs(velocity) > 400f) {
-                    startFling(velocity)
-                } else {
-                    settleTo(scrollPos.roundToInt().toFloat())
+                when {
+                    abs(velocity) > 400f -> startFling(velocity)
+                    // 轻点未拖动时，直接吸附到点击的条目
+                    !moved && event.actionMasked == MotionEvent.ACTION_UP -> {
+                        val tapOffset = (event.y - height / 2f) / itemHeight
+                        val target = (scrollPos + tapOffset).roundToInt()
+                            .coerceIn(0, (items.size - 1).coerceAtLeast(0))
+                        settleTo(target.toFloat())
+                    }
+
+                    else -> settleTo(scrollPos.roundToInt().toFloat())
                 }
                 if (event.actionMasked == MotionEvent.ACTION_UP) performClick()
             }

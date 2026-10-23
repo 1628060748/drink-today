@@ -1,8 +1,12 @@
 package com.drinktoday.ui
 
 import android.animation.ValueAnimator
-import android.content.Context
 import android.graphics.Typeface
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
@@ -16,7 +20,6 @@ import com.drinktoday.data.DrinkStore
 import com.drinktoday.databinding.PageTodayBinding
 import com.drinktoday.util.DateX
 import com.drinktoday.util.dpInt
-import kotlin.math.min
 
 /**
  * 打卡首页：水杯水位、快捷记录、补录与目标设置。
@@ -30,10 +33,12 @@ class TodayPage(
     private val quickAmounts = intArrayOf(150, 200, 300, 500)
     private var totalAnimator: ValueAnimator? = null
     private var displayedTotal = 0
-    private var snackRecord: DrinkRecord? = null
-    private var snackDay: Long = 0L
+    private var currentTotal = 0
+    private var currentGoal = DrinkStore.DEFAULT_GOAL
 
-    private val hideSnackRunnable = Runnable { hideSnack() }
+    private var undoRecord: DrinkRecord? = null
+    private var undoDay: Long = 0L
+    private val restoreHintRunnable = Runnable { renderHint() }
 
     init {
         buildQuickChips()
@@ -50,8 +55,6 @@ class TodayPage(
         binding.btnBackfill.setOnClickListener {
             AddRecordSheet(activity, store) { record -> onRecordAdded(record) }.show()
         }
-        binding.snackUndo.setOnClickListener { undoLast() }
-
         TouchFx.press(binding.btnGoal, 0.9f)
         TouchFx.press(binding.btnBackfill, 0.975f)
     }
@@ -68,7 +71,7 @@ class TodayPage(
     private fun createChip(amount: Int): View {
         val container = FrameLayout(activity)
         container.background = ContextCompat.getDrawable(activity, R.drawable.bg_pill_white)
-        container.contentDescription = activity.getString(R.string.added_toast, amount)
+        container.contentDescription = activity.getString(R.string.record_amount_desc, amount)
 
         val inner = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -90,10 +93,13 @@ class TodayPage(
             gravity = Gravity.CENTER
         }
         inner.addView(value)
-        inner.addView(unit, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = dpInt(3f) })
+        inner.addView(
+            unit,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dpInt(3f) }
+        )
         container.addView(
             inner,
             FrameLayout.LayoutParams(
@@ -111,29 +117,24 @@ class TodayPage(
 
     fun refresh(animate: Boolean) {
         val today = DateX.todayEpochDay()
-        val goal = store.goalMl
-        val total = store.total(today)
+        currentGoal = store.goalMl
+        currentTotal = store.total(today)
         val count = store.count(today)
 
-        binding.cupView.setData(goal, total, animate)
+        binding.cupView.setData(currentGoal, currentTotal, animate)
 
-        val dateText = buildString {
+        binding.tvDate.text = buildString {
             append(DateX.dayTitle(today))
             if (count > 0) {
                 append(" · ")
                 append(activity.getString(R.string.records_count, count))
             }
         }
-        binding.tvDate.text = dateText
 
-        binding.tvHint.text = when {
-            total <= 0 -> activity.getString(R.string.today_empty_hint)
-            total > goal -> activity.getString(R.string.goal_overflow, goal, total - goal)
-            total == goal -> activity.getString(R.string.goal_reached, goal)
-            else -> activity.getString(R.string.goal_remain, goal, goal - total)
-        }
-
-        animateTotal(total, animate)
+        binding.tvHint.removeCallbacks(restoreHintRunnable)
+        binding.tvHint.movementMethod = null
+        renderHint()
+        animateTotal(currentTotal, animate)
     }
 
     fun onResume() {
@@ -142,6 +143,17 @@ class TodayPage(
 
     fun setPaused(paused: Boolean) {
         binding.cupView.setPaused(paused)
+    }
+
+    private fun renderHint() {
+        val goal = currentGoal
+        val total = currentTotal
+        binding.tvHint.text = when {
+            total <= 0 -> activity.getString(R.string.today_empty_hint)
+            total > goal -> activity.getString(R.string.goal_overflow, goal, total - goal)
+            total == goal -> activity.getString(R.string.goal_reached, goal)
+            else -> activity.getString(R.string.goal_remain, goal, goal - total)
+        }
     }
 
     // ------------------------------------------------------------ 记录
@@ -153,18 +165,45 @@ class TodayPage(
     }
 
     private fun onRecordAdded(record: DrinkRecord) {
-        snackRecord = record
-        snackDay = DateX.epochDayOf(record.timeMillis)
+        undoRecord = record
+        undoDay = DateX.epochDayOf(record.timeMillis)
         refresh(animate = true)
-        showSnack(activity.getString(R.string.added_toast, record.amountMl))
+        showUndoHint(record.amountMl)
+    }
+
+    /** 记录后在提示行内嵌「撤销」，不打断当前操作，也不遮挡主按钮。 */
+    private fun showUndoHint(amountMl: Int) {
+        val undoLabel = activity.getString(R.string.undo)
+        val text = activity.getString(R.string.added_toast, amountMl) + "   " + undoLabel
+        val spannable = SpannableString(text)
+        val start = text.length - undoLabel.length
+        spannable.setSpan(object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                undoLast()
+            }
+
+            override fun updateDrawState(ds: TextPaint) {
+                ds.color = Palette.ACCENT
+                ds.isUnderlineText = false
+                ds.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            }
+        }, start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        binding.tvHint.text = spannable
+        binding.tvHint.movementMethod = LinkMovementMethod.getInstance()
+        binding.tvHint.removeCallbacks(restoreHintRunnable)
+        binding.tvHint.postDelayed(restoreHintRunnable, UNDO_DURATION)
     }
 
     private fun undoLast() {
-        val record = snackRecord ?: return
-        store.remove(snackDay, record.id)
-        snackRecord = null
-        hideSnack()
-        refresh(animate = true)
+        val record = undoRecord
+        binding.tvHint.removeCallbacks(restoreHintRunnable)
+        binding.tvHint.movementMethod = null
+        if (record != null) {
+            store.remove(undoDay, record.id)
+            undoRecord = null
+            refresh(animate = true)
+        }
     }
 
     // ------------------------------------------------------------ 数字补间
@@ -191,35 +230,7 @@ class TodayPage(
         }
     }
 
-    // ------------------------------------------------------------ 提示条
-
-    private fun showSnack(message: String) {
-        binding.snackText.text = message
-        binding.snackBar.removeCallbacks(hideSnackRunnable)
-        binding.snackBar.visibility = View.VISIBLE
-        binding.snackBar.alpha = 0f
-        binding.snackBar.translationY = dpInt(14f).toFloat()
-        binding.snackBar.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setDuration(220L)
-            .setInterpolator(android.view.animation.DecelerateInterpolator())
-            .start()
-        binding.snackBar.postDelayed(hideSnackRunnable, SNACK_DURATION)
-    }
-
-    private fun hideSnack() {
-        binding.snackBar.removeCallbacks(hideSnackRunnable)
-        if (binding.snackBar.visibility != View.VISIBLE) return
-        binding.snackBar.animate()
-            .alpha(0f)
-            .translationY(dpInt(14f).toFloat())
-            .setDuration(180L)
-            .withEndAction { binding.snackBar.visibility = View.GONE }
-            .start()
-    }
-
     private companion object {
-        const val SNACK_DURATION = 3200L
+        const val UNDO_DURATION = 3600L
     }
 }

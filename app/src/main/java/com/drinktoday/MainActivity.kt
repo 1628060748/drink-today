@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         todayPage.onResume()
+        todayPage.setPaused(pageIndex != 0)
         if (pageIndex == 1) historyPage.refresh(animate = false)
     }
 

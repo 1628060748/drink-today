@@ -62,6 +62,7 @@ class HistoryPage(
         val days = DateX.daysInMonth(year, month)
         val values = IntArray(days) { index -> totals[DateX.epochDayOf(year, month, index + 1)] ?: 0 }
         binding.chart.setData(values, goal, animate)
+        binding.tvChartHint.text = activity.getString(R.string.chart_goal_hint, goal)
         binding.tvEmpty.visibility = if (totals.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
 
         val isLatest = YearMonth.of(year, month) == YearMonth.now()

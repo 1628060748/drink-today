@@ -35,7 +35,6 @@ class CupView @JvmOverloads constructor(
     // ------------------------------------------------------------ 数据
 
     private var goalMl = 2000
-    private var totalMl = 0
     private var level = 0f
     private var targetLevel = 0f
     private var levelAnimator: ValueAnimator? = null
@@ -54,11 +53,8 @@ class CupView @JvmOverloads constructor(
 
     private val cupRect = RectF()
     private val innerRect = RectF()
-    private val rimRect = RectF()
     private val glossRect = RectF()
     private val groundRect = RectF()
-    private var cupInset = 0f
-    private var rimHalf = 0f
     private var bandRadius = 0f
 
     private val cupPath = Path()
@@ -78,10 +74,10 @@ class CupView @JvmOverloads constructor(
     }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = dp(1.5f)
-        color = Palette.GLASS_STROKE
+        strokeWidth = dp(1.6f)
+        color = 0xFFD5DDEA.toInt()
     }
-    private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rimShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -109,7 +105,6 @@ class CupView @JvmOverloads constructor(
     /** 更新数据。[animate] 为 true 时水位做弹性补间。 */
     fun setData(goalMl: Int, totalMl: Int, animate: Boolean = true) {
         this.goalMl = goalMl.coerceAtLeast(1)
-        this.totalMl = totalMl
         val target = (totalMl.toFloat() / this.goalMl).coerceIn(0f, 1f)
         val rising = target > targetLevel + 0.0005f
         targetLevel = target
@@ -149,6 +144,12 @@ class CupView @JvmOverloads constructor(
     fun setPaused(value: Boolean) {
         if (paused == value) return
         paused = value
+        if (value) {
+            levelAnimator?.cancel()
+            levelAnimator = null
+            level = targetLevel
+            slosh = 0f
+        }
         updateLoopState()
     }
 
@@ -227,18 +228,16 @@ class CupView @JvmOverloads constructor(
         val availH = (h - paddingTop - paddingBottom).toFloat()
         if (availW <= 0f || availH <= 0f) return
 
-        var cupW = min(availW * 0.70f, dp(246f))
-        var cupH = cupW * 1.24f
+        var cupW = min(availW * 0.64f, dp(214f))
+        var cupH = cupW * 1.45f
         if (cupH > availH) {
             cupH = availH
-            cupW = cupH / 1.24f
+            cupW = cupH / 1.45f
         }
         val cx = paddingLeft + availW / 2f
         val cy = paddingTop + availH / 2f
         cupRect.set(cx - cupW / 2f, cy - cupH / 2f, cx + cupW / 2f, cy + cupH / 2f)
 
-        cupInset = dp(1.6f)
-        rimHalf = dp(7.5f)
         bandRadius = cupW * 0.5f
 
         buildShader()
@@ -267,7 +266,7 @@ class CupView @JvmOverloads constructor(
         )
         glossPaint.shader = LinearGradient(
             0f, cupRect.top, 0f, cupRect.bottom,
-            intArrayOf(0x8CFFFFFF.toInt(), 0x14FFFFFF),
+            intArrayOf(0x73FFFFFF, 0x0FFFFFFF),
             null,
             Shader.TileMode.CLAMP
         )
@@ -287,43 +286,36 @@ class CupView @JvmOverloads constructor(
             Shader.TileMode.CLAMP
         )
         groundRect.set(gx - cupRect.width() * 0.44f, cupRect.bottom - dp(6f), gx + cupRect.width() * 0.44f, cupRect.bottom + dp(12f))
-        rimPaint.color = 0x0F2C5C96
-        rimPaint.style = Paint.Style.FILL
+        rimShadowPaint.shader = LinearGradient(
+            0f, cupRect.top, 0f, cupRect.top + dp(20f),
+            intArrayOf(0x1F2C5C96, 0x002C5C96), null, Shader.TileMode.CLAMP
+        )
     }
 
-    /** 上宽下窄、侧壁微微外鼓的杯型 */
+    /** 上宽下窄的直锥形杯体，底部圆角收口 */
     private fun buildCupPath(path: Path, inset: Float) {
         val l = cupRect.left + inset
         val r = cupRect.right - inset
         val t = cupRect.top + inset
         val b = cupRect.bottom - inset
         val w = r - l
-        val h = b - t
         val cx = (l + r) / 2f
         val topHalf = w / 2f
         val bottomHalf = topHalf * 0.815f
-        val rTop = dp(13f).coerceAtMost(w * 0.11f)
-        val rBottom = dp(26f).coerceAtMost(w * 0.15f)
+        val rTop = dp(16f).coerceAtMost(w * 0.12f)
+        val rBottom = dp(28f).coerceAtMost(w * 0.16f)
 
         path.reset()
         path.moveTo(cx - topHalf, t + rTop)
         path.quadTo(cx - topHalf, t, cx - topHalf + rTop, t)
         path.lineTo(cx + topHalf - rTop, t)
         path.quadTo(cx + topHalf, t, cx + topHalf, t + rTop)
-        // 右侧壁：中部略微外鼓，接近底部收窄
-        path.cubicTo(
-            cx + topHalf, t + h * 0.44f,
-            cx + bottomHalf + dp(3f), b - h * 0.30f,
-            cx + bottomHalf, b - rBottom
-        )
+        // 侧壁：自上而下平直收窄，杯型干净利落
+        path.lineTo(cx + bottomHalf, b - rBottom)
         path.quadTo(cx + bottomHalf, b, cx + bottomHalf - rBottom, b)
         path.lineTo(cx - bottomHalf + rBottom, b)
         path.quadTo(cx - bottomHalf, b, cx - bottomHalf, b - rBottom)
-        path.cubicTo(
-            cx - bottomHalf - dp(3f), b - h * 0.30f,
-            cx - topHalf, t + h * 0.44f,
-            cx - topHalf, t + rTop
-        )
+        path.lineTo(cx - topHalf, t + rTop)
         path.close()
     }
 
@@ -352,7 +344,7 @@ class CupView @JvmOverloads constructor(
         val waterHeight = bottom - surfaceY
         if (waterHeight < dp(2.5f)) return
 
-        val amp = min(dp(2.0f) + slosh * dp(3.4f), waterHeight * 0.45f)
+        val amp = min(dp(2.6f) + slosh * dp(3.4f), waterHeight * 0.45f)
 
         canvas.save()
         canvas.clipPath(innerPath)
@@ -439,10 +431,13 @@ class CupView @JvmOverloads constructor(
     }
 
     private fun drawRim(canvas: Canvas) {
-        rimRect.set(cupRect.left + cupInset, cupRect.top - rimHalf, cupRect.right - cupInset, cupRect.top + rimHalf)
         canvas.save()
         canvas.clipPath(innerPath)
-        canvas.drawOval(rimRect, rimPaint)
+        canvas.drawRect(
+            innerRect.left, cupRect.top,
+            innerRect.right, cupRect.top + dp(20f),
+            rimShadowPaint
+        )
         canvas.restore()
     }
 
@@ -450,9 +445,9 @@ class CupView @JvmOverloads constructor(
         canvas.save()
         canvas.clipPath(innerPath)
         val left = innerRect.left + innerRect.width() * 0.115f
-        val width = dp(7f)
-        val top = innerRect.top + dp(16f)
-        val height = innerRect.height() * 0.52f
+        val width = dp(6.5f)
+        val top = innerRect.top + dp(18f)
+        val height = innerRect.height() * 0.50f
         glossRect.set(left, top, left + width, top + height)
         canvas.drawRoundRect(glossRect, width / 2f, width / 2f, glossPaint)
         canvas.restore()

@@ -7,26 +7,30 @@ import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.ScrollView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.drinktoday.R
 import kotlin.math.min
 
 /**
- * 底部弹层基类：负责窗口定位、圆角卡片尺寸与导航栏内边距。
- * 内容高度自适应，最高占屏幕 92%，超出时内部 ScrollView 滚动。
+ * 底部弹层基类。
+ *
+ * 实现方式：窗口铺满全屏且透明，卡片贴在窗口底部；这样不依赖 window gravity，
+ * 在各厂商 ROM 上的定位都稳定。内容高度自适应，超过屏幕 90% 时卡片内部滚动。
  */
 abstract class BaseSheet(context: Context, layoutRes: Int) : Dialog(context, R.style.Theme_DrinkToday_Sheet) {
 
     protected val root: View = LayoutInflater.from(context).inflate(layoutRes, null)
+    protected val card: View = root.findViewById(R.id.sheetCard)
+    private val scroll: ScrollView = root.findViewById(R.id.sheetScroll)
     private var basePaddingBottom = -1
 
     init {
         setContentView(root)
         window?.apply {
-            setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
+            setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
             setGravity(Gravity.BOTTOM)
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
@@ -34,6 +38,10 @@ abstract class BaseSheet(context: Context, layoutRes: Int) : Dialog(context, R.s
             setWindowAnimations(R.style.Anim_DrinkToday_Sheet)
         }
         setCanceledOnTouchOutside(true)
+        // 点击卡片外的空白区域收起
+        root.setOnClickListener { dismiss() }
+        card.isClickable = true
+        scroll.isClickable = true
     }
 
     override fun onStart() {
@@ -42,28 +50,30 @@ abstract class BaseSheet(context: Context, layoutRes: Int) : Dialog(context, R.s
         resizeToContent()
     }
 
-    /** 内容发生变化（如列表增删）后调用，保持弹层紧贴内容。 */
+    /** 内容变化（列表增删等）后重新计算高度。 */
     protected fun resizeToContent() {
-        val win = window ?: return
         val metrics = context.resources.displayMetrics
-        val maxHeight = (metrics.heightPixels * 0.92f).toInt()
-        val card = cardView()
+        val maxHeight = (metrics.heightPixels * 0.90f).toInt()
         card.measure(
             View.MeasureSpec.makeMeasureSpec(metrics.widthPixels, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        win.setLayout(WindowManager.LayoutParams.MATCH_PARENT, min(card.measuredHeight, maxHeight))
-    }
-
-    private fun cardView(): View {
-        val container = root as? ViewGroup
-        return if (container != null && container.childCount > 0) container.getChildAt(0) else root
+        val target = min(card.measuredHeight, maxHeight)
+        val params = scroll.layoutParams ?: return
+        if (params.height != target) {
+            params.height = target
+            scroll.layoutParams = params
+        }
     }
 
     private fun applyNavigationInset() {
         val inset = ViewCompat.getRootWindowInsets(root)
-            ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-        val card = cardView()
+            ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom
+            ?: root.rootWindowInsets?.let { insets ->
+                WindowInsetsCompat.toWindowInsetsCompat(insets)
+                    .getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            }
+            ?: 0
         if (basePaddingBottom < 0) basePaddingBottom = card.paddingBottom
         card.setPadding(card.paddingLeft, card.paddingTop, card.paddingRight, basePaddingBottom + inset)
     }
