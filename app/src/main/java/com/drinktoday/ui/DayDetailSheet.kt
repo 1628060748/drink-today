@@ -50,7 +50,8 @@ class DayDetailSheet(
         }
         tvEmpty.visibility = if (records.isEmpty()) View.VISIBLE else View.GONE
 
-        records.forEachIndexed { index, record ->
+        // 存储按时间升序（便于汇总），展示改为最新在前
+        records.asReversed().forEachIndexed { index, record ->
             if (index > 0) recordList.addView(divider())
             recordList.addView(buildRow(record.timeMillis, record.amountMl, record.id))
         }
