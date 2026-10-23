@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.DrinkToday.Base" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="colorAccent">@color/accent</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="Theme.DrinkToday" parent="Theme.DrinkToday.Base" />
+
+    <style name="Theme.DrinkToday.Sheet" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimAmount">0.32</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@style/Anim.DrinkToday.Sheet</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Anim.DrinkToday.Sheet" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/sheet_in</item>
+        <item name="android:windowExitAnimation">@anim/sheet_out</item>
+    </style>
+
+</resources>

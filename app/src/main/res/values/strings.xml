@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">今天喝水了吗</string>
+
+    <!-- 首页 -->
+    <string name="title_today">今天喝水了吗</string>
+    <string name="today_empty_hint">还没有记录，喝一口开始吧</string>
+    <string name="backfill">补录打卡</string>
+    <string name="goal_setting">每日目标</string>
+    <string name="goal_label">目标 %1$d ml</string>
+    <string name="goal_remain">目标 %1$d ml · 还差 %2$d ml</string>
+    <string name="goal_reached">目标 %1$d ml · 已达标</string>
+    <string name="goal_overflow">目标 %1$d ml · 超出 %2$d ml</string>
+    <string name="records_count">%1$d 次记录</string>
+    <string name="added_toast">已记录 %1$d ml</string>
+    <string name="undo">撤销</string>
+    <string name="unit_ml">ml</string>
+
+    <!-- 历史 -->
+    <string name="title_history">统计历史</string>
+    <string name="history_subtitle">坚持记录，看见改变</string>
+    <string name="legend_reached">达标</string>
+    <string name="legend_partial">未达标</string>
+    <string name="legend_none">未记录</string>
+    <string name="stat_reached_days">达标天数</string>
+    <string name="stat_record_days">记录天数</string>
+    <string name="stat_average">日均饮水</string>
+    <string name="stat_streak">连续达标</string>
+    <string name="unit_day">天</string>
+    <string name="month_overview">本月概览</string>
+    <string name="month_empty">本月还没有记录</string>
+    <string name="last_month">上个月</string>
+    <string name="next_month">下个月</string>
+
+    <!-- 补录弹层 -->
+    <string name="backfill_title">补录打卡</string>
+    <string name="backfill_subtitle">记录一次已经喝下的水</string>
+    <string name="label_date">日期</string>
+    <string name="label_time">时间</string>
+    <string name="label_amount">饮水量</string>
+    <string name="action_save">保存记录</string>
+    <string name="chip_today">今天</string>
+    <string name="chip_yesterday">昨天</string>
+    <string name="chip_before_yesterday">前天</string>
+    <string name="time_adjusted">已调整为当前时间</string>
+
+    <!-- 目标弹层 -->
+    <string name="goal_title">每日饮水目标</string>
+    <string name="goal_subtitle">成年人大约需要 1500–2000 ml，可按自身情况调整</string>
+    <string name="goal_hint_min">最少 500 ml</string>
+    <string name="goal_hint_max">最多 5000 ml</string>
+
+    <!-- 日详情 -->
+    <string name="day_detail_title">%1$d月%2$d日 记录</string>
+    <string name="day_detail_empty">这一天还没有记录</string>
+    <string name="day_detail_total">合计 %1$d ml</string>
+    <string name="day_detail_reached">已达标</string>
+    <string name="day_detail_not_reached">距离目标还差 %1$d ml</string>
+    <string name="delete_record">删除这条记录</string>
+</resources>
