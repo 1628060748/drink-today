@@ -57,6 +57,15 @@ object DateX {
 
     fun daysInMonth(year: Int, month: Int): Int = toDate(LocalDate.of(year, month, 1).toEpochDay()).lengthOfMonth()
 
+    fun epochDayOf(timeMillis: Long): Long =
+        java.time.Instant.ofEpochMilli(timeMillis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+            .toEpochDay()
+
+    fun epochDayOf(year: Int, month: Int, dayOfMonth: Int): Long =
+        LocalDate.of(year, month, dayOfMonth).toEpochDay()
+
     /** 周一为 0 的月首偏移 */
     fun firstDayOffset(year: Int, month: Int): Int = LocalDate.of(year, month, 1).dayOfWeek.value - 1
 }
