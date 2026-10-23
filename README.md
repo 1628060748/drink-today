@@ -16,6 +16,7 @@
 - **补录打卡**：底部弹层中选择最近 7 天中的某一天、滚轮选择时/分、步进或预设调整水量，一次写入。若选择的时间晚于当前时刻，会自动收敛为当前时间并提示。
 - **日历统计**：按月查看，每天按状态着色——达标（蓝色实心）、未达标（浅蓝实心）、未记录（无底色）、未来日期（浅灰文字）；今天带描边。点击某天可查看当天每条记录并逐条删除。
 - **本月概览**：达标天数、记录天数、日均饮水、连续达标天数，以及每日饮水柱状图（虚线为每日目标）。
+- **桌面小部件（4×2）**：桌面上直接看今日进度，点 4 个按钮即可快捷打卡；点击杯体/数字进入 App。小部件与 App 共用同一份数据，操作后立即互相同步，跨天自动刷新。
 
 ## 构建与运行
 
@@ -66,9 +67,20 @@ app/src/main/java/com/drinktoday/
 │   ├── DayDetailSheet.kt      单日详情与删除
 │   ├── TouchFx.kt             统一按压反馈
 │   ├── Pills.kt               胶囊标签
-│   └── Palette.kt             自绘用配色
+│   ├── Palette.kt             自绘用配色
+│   └── widget/
+│       ├── DrinkWidgetProvider.kt  小部件更新、快捷打卡广播、跨天刷新
+│       └── WidgetRenderer.kt       构建 RemoteViews（离屏渲染水杯位图）
 └── util/                      dp 换算、日期文案
 ```
+
+## 桌面小部件
+
+- 采用标准 AppWidget（`RemoteViews`），HyperOS / MIUI / 原生桌面均可在「添加小部件」中找到「喝水打卡」。
+- **水杯与 App 同源**：RemoteViews 不能承载自绘 View，这里把真实的 `CupView` 离屏 `measure → layout → draw(Canvas)` 渲染成 Bitmap 再交给 `ImageView`，因此杯型、水位、配色永远与 App 一致，不会出现第二套画法。
+- 4 个快捷按钮复用用户在设置里的快捷水量，点击后写入 `DrinkStore` 并立即刷新小部件（附带一次 Toast 反馈）。
+- 同步策略：App 内数据变化（`onStop`）、小部件按钮点击、`ACTION_DATE_CHANGED` / `TIME_SET` / `TIMEZONE_CHANGED` 以及 30 分钟系统周期刷新。
+- 受 RemoteViews 限制，小部件是**静态一帧**：没有水位上涨与水波动画（动画只存在于 App 内）。
 
 ## 动效设计
 
@@ -123,3 +135,4 @@ git log --oneline
 - `feat` 打卡首页、历史统计页与弹层
 - `polish` 杯型与预览校准、Lint 清理
 - `fix` 快捷按钮数字裁切，快捷水量改为可自定义（v1.0.1）
+- `feat` 桌面小部件：进度 + 快捷打卡（v1.1.0）

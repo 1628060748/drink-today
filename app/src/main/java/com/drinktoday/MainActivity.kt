@@ -15,6 +15,7 @@ import com.drinktoday.databinding.ActivityMainBinding
 import com.drinktoday.ui.HistoryPage
 import com.drinktoday.ui.Palette
 import com.drinktoday.ui.TodayPage
+import com.drinktoday.widget.DrinkWidgetProvider
 import com.drinktoday.util.dpInt
 
 class MainActivity : AppCompatActivity() {
@@ -61,6 +62,12 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         todayPage.setPaused(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 离开 App 时同步桌面小部件，避免桌面数据滞后
+        DrinkWidgetProvider.refreshAll(applicationContext)
     }
 
     // ------------------------------------------------------------ 系统栏
