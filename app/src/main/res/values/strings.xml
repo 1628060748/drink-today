@@ -63,16 +63,11 @@
     <string name="widget_name">喝水打卡</string>
     <string name="widget_description">显示今日饮水进度，点击按钮即可补记一杯</string>
     <string name="widget_goal">/ %1$d ml</string>
-    <string name="widget_hint_empty">还没有记录</string>
-    <string name="widget_hint_remain">还差 %1$d ml</string>
-    <string name="widget_hint_over">已超出 %1$d ml</string>
-    <string name="widget_hint_reached">已达标</string>
-    <string name="widget_add">+%1$d ml</string>
+    <string name="widget_add_value">+%1$d</string>
     <string name="widget_open_app">打开今天喝水了吗</string>
     <string name="widget_total_preview">1200</string>
     <string name="widget_goal_preview">/ 2000 ml</string>
-    <string name="widget_hint_preview">还差 800 ml</string>
-    <string name="widget_add_preview">+150 ml</string>
+    <string name="widget_add_value_preview">+150</string>
 
     <!-- 日详情 -->
     <string name="day_detail_title">%1$d月%2$d日 记录</string>

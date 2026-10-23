@@ -78,7 +78,8 @@ app/src/main/java/com/drinktoday/
 
 - 采用标准 AppWidget（`RemoteViews`），HyperOS / MIUI / 原生桌面均可在「添加小部件」中找到「喝水打卡」。
 - **水杯与 App 同源**：RemoteViews 不能承载自绘 View，这里把真实的 `CupView` 离屏 `measure → layout → draw(Canvas)` 渲染成 Bitmap 再交给 `ImageView`，因此杯型、水位、配色永远与 App 一致，不会出现第二套画法。
-- **按实例尺寸渲染**：读取 `AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT` 推算杯区高度，位图按该尺寸生成，拉伸或换格子时不发虚；杯子居中占主体，数字 20sp、目标/提示 10.5–11.5sp、按钮 28dp。
+- **左右分栏**：左侧水杯作为主体，杯下「已喝 / 目标」同字号（17sp，靠颜色区分层级），不再显示提示行；右侧 2×2 快捷按钮（数字 17sp + 单位 11sp），行高随卡片等分，拉伸时按钮一起长高。
+- **按实例尺寸渲染**：读取 `OPTION_APPWIDGET_MIN_WIDTH/MIN_HEIGHT` 推算左栏杯区宽高，位图按实际尺寸生成，拉伸或换格子时不发虚；小部件为白底卡片，因此关闭了杯底投影。
 - 4 个快捷按钮复用用户在设置里的快捷水量，点击后写入 `DrinkStore` 并立即刷新小部件（附带一次 Toast 反馈）。
 - 同步策略：App 内数据变化（`onStop`）、小部件按钮点击、`ACTION_DATE_CHANGED` / `TIME_SET` / `TIMEZONE_CHANGED` 以及 30 分钟系统周期刷新。
 - 受 RemoteViews 限制，小部件是**静态一帧**：没有水位上涨与水波动画（动画只存在于 App 内）。

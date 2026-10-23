@@ -48,6 +48,7 @@ class CupView @JvmOverloads constructor(
     private var frameScheduled = false
     private var running = false
     private var paused = false
+    private var groundShadowVisible = true
 
     // ------------------------------------------------------------ 几何与绘制缓存
 
@@ -138,6 +139,13 @@ class CupView @JvmOverloads constructor(
             start()
         }
         updateLoopState()
+    }
+
+    /** 桌面小部件用白底卡片，去掉杯底投影以免显脏。 */
+    fun setGroundShadowVisible(visible: Boolean) {
+        if (groundShadowVisible == visible) return
+        groundShadowVisible = visible
+        invalidate()
     }
 
     /** 页面切换到后台/不可见时暂停帧循环，恢复时继续。 */
@@ -332,6 +340,7 @@ class CupView @JvmOverloads constructor(
     }
 
     private fun drawGround(canvas: Canvas) {
+        if (!groundShadowVisible) return
         canvas.drawOval(groundRect, groundPaint)
     }
 

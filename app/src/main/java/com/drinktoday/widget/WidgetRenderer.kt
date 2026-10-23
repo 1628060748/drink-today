@@ -24,17 +24,26 @@ import com.drinktoday.ui.CupView
  */
 object WidgetRenderer {
 
-    /** 卡片内除水杯外的固定高度（上下内边距 + 数字 + 提示 + 按钮）。 */
-    private const val CHROME_HEIGHT_DP = 114f
-    private const val MIN_CUP_DP = 86f
-    private const val MAX_CUP_DP = 200f
-    private const val FALLBACK_CUP_DP = 150f
+    private const val H_PADDING_DP = 32f      // 卡片左右内边距
+    private const val H_GAP_DP = 14f          // 左右两栏间距
+    private const val LEFT_WEIGHT = 1.2f
+    private const val RIGHT_WEIGHT = 1f
+    private const val V_CHROME_DP = 58f       // 上下内边距 + 数字行 + 间距
+    private const val FALLBACK_W_DP = 170f
+    private const val FALLBACK_H_DP = 170f
 
     private val BUTTON_IDS = intArrayOf(
         R.id.widgetBtn1,
         R.id.widgetBtn2,
         R.id.widgetBtn3,
         R.id.widgetBtn4
+    )
+
+    private val BUTTON_VALUE_IDS = intArrayOf(
+        R.id.widgetBtn1Value,
+        R.id.widgetBtn2Value,
+        R.id.widgetBtn3Value,
+        R.id.widgetBtn4Value
     )
 
     fun build(
@@ -47,20 +56,26 @@ object WidgetRenderer {
         val views = RemoteViews(context.packageName, R.layout.widget_drink)
 
         val density = context.resources.displayMetrics.density
-        val sidePx = (cupSideDp(options) * density).toInt()
+        val (cupWidthDp, cupHeightDp) = cupSizeDp(options)
         views.setImageViewBitmap(
             R.id.widgetCup,
-            renderCup(context, sidePx, sidePx, goalMl, totalMl)
+            renderCup(
+                context,
+                (cupWidthDp * density).toInt(),
+                (cupHeightDp * density).toInt(),
+                goalMl,
+                totalMl
+            )
         )
 
         views.setTextViewText(R.id.widgetTotal, totalMl.toString())
         views.setTextViewText(R.id.widgetGoal, context.getString(R.string.widget_goal, goalMl))
-        views.setTextViewText(R.id.widgetHint, hintText(context, goalMl, totalMl))
+        // 达标后数字转为强调色，替代原来的提示行
         views.setTextColor(
-            R.id.widgetHint,
+            R.id.widgetTotal,
             ContextCompat.getColor(
                 context,
-                if (totalMl >= goalMl && totalMl > 0) R.color.accent else R.color.text_secondary
+                if (totalMl >= goalMl && totalMl > 0) R.color.accent else R.color.text_primary
             )
         )
 
@@ -70,7 +85,10 @@ object WidgetRenderer {
             } else {
                 DrinkStore.DEFAULT_QUICK_AMOUNTS[slot]
             }
-            views.setTextViewText(BUTTON_IDS[slot], context.getString(R.string.widget_add, amount))
+            views.setTextViewText(
+                BUTTON_VALUE_IDS[slot],
+                context.getString(R.string.widget_add_value, amount)
+            )
             views.setOnClickPendingIntent(BUTTON_IDS[slot], quickAddIntent(context, slot, amount))
         }
 
@@ -81,20 +99,21 @@ object WidgetRenderer {
     }
 
     /**
-     * 依据小部件实际高度决定水杯位图边长：杯子区域用 layout_weight 吃掉剩余高度，
-     * 位图按相近尺寸渲染，既不会因放大而发虚，也不会因过小而显脏。
+     * 依据小部件实际格子尺寸推算左栏杯区大小：位图与显示区域一致，
+     * 既不会因放大而发虚，也不会因为固定尺寸而在大格子里显小。
      */
-    private fun cupSideDp(options: Bundle?): Float {
+    private fun cupSizeDp(options: Bundle?): Pair<Float, Float> {
+        val widthDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
         val heightDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
-        if (heightDp <= 0) return FALLBACK_CUP_DP
-        return (heightDp - CHROME_HEIGHT_DP).coerceIn(MIN_CUP_DP, MAX_CUP_DP)
-    }
 
-    private fun hintText(context: Context, goalMl: Int, totalMl: Int): String = when {
-        totalMl <= 0 -> context.getString(R.string.widget_hint_empty)
-        totalMl > goalMl -> context.getString(R.string.widget_hint_over, totalMl - goalMl)
-        totalMl == goalMl -> context.getString(R.string.widget_hint_reached)
-        else -> context.getString(R.string.widget_hint_remain, goalMl - totalMl)
+        val columnWidth = if (widthDp > 0) {
+            (widthDp - H_PADDING_DP - H_GAP_DP) * (LEFT_WEIGHT / (LEFT_WEIGHT + RIGHT_WEIGHT))
+        } else {
+            FALLBACK_W_DP
+        }
+        val cupHeight = if (heightDp > 0) heightDp - V_CHROME_DP else FALLBACK_H_DP
+
+        return columnWidth.coerceIn(90f, 210f) to cupHeight.coerceIn(84f, 230f)
     }
 
     private fun renderCup(
@@ -105,6 +124,7 @@ object WidgetRenderer {
         totalMl: Int
     ): Bitmap {
         val view = CupView(context)
+        view.setGroundShadowVisible(false)
         view.setData(goalMl, totalMl, animate = false)
         view.measure(
             View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),

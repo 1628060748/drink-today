@@ -3,147 +3,235 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_widget"
-    android:orientation="vertical"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
     android:paddingStart="16dp"
     android:paddingTop="14dp"
     android:paddingEnd="16dp"
-    android:paddingBottom="12dp">
+    android:paddingBottom="14dp">
 
-    <!-- 水杯占满剩余空间，作为整个小部件的主体 -->
-    <FrameLayout
-        android:id="@+id/widgetCupArea"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:minHeight="86dp">
-
-        <ImageView
-            android:id="@+id/widgetCup"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/widget_open_app"
-            android:scaleType="fitCenter" />
-    </FrameLayout>
-
+    <!-- 左栏：水杯 + 已喝 / 目标 -->
     <LinearLayout
-        android:id="@+id/widgetInfo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.2"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widgetTotal"
+        <FrameLayout
+            android:id="@+id/widgetCupArea"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:minHeight="84dp">
+
+            <ImageView
+                android:id="@+id/widgetCup"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/widget_open_app"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/widgetInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
-            android:fontFeatureSettings="tnum"
-            android:includeFontPadding="false"
-            android:text="@string/widget_total_preview"
-            android:textColor="@color/text_primary"
-            android:textSize="20sp" />
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/widgetGoal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:includeFontPadding="false"
-            android:text="@string/widget_goal_preview"
-            android:textColor="@color/text_secondary"
-            android:textSize="11.5sp" />
+            <TextView
+                android:id="@+id/widgetTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
+                android:includeFontPadding="false"
+                android:text="@string/widget_total_preview"
+                android:textColor="@color/text_primary"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/widgetGoal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
+                android:includeFontPadding="false"
+                android:text="@string/widget_goal_preview"
+                android:textColor="@color/text_secondary"
+                android:textSize="17sp" />
+        </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widgetHint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:gravity="center_horizontal"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="@string/widget_hint_preview"
-        android:textColor="@color/text_secondary"
-        android:textSize="11sp" />
-
+    <!-- 右栏：2x2 快捷按钮，随卡片高度等分 -->
     <LinearLayout
-        android:id="@+id/widgetButtons"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:layout_marginTop="10dp"
-        android:baselineAligned="false"
-        android:orientation="horizontal">
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widgetBtn1"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:autoSizeMaxTextSize="11sp"
-            android:autoSizeMinTextSize="9sp"
-            android:autoSizeTextType="uniform"
-            android:background="@drawable/bg_widget_chip"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:text="@string/widget_add_preview"
-            android:textColor="@color/text_primary"
-            android:textSize="11sp" />
+            android:baselineAligned="false"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/widgetBtn2"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:autoSizeMaxTextSize="11sp"
-            android:autoSizeMinTextSize="9sp"
-            android:autoSizeTextType="uniform"
-            android:background="@drawable/bg_widget_chip"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:text="@string/widget_add_preview"
-            android:textColor="@color/text_primary"
-            android:textSize="11sp" />
+            <LinearLayout
+                android:id="@+id/widgetBtn1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_widget_chip"
+                android:gravity="center"
+                android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widgetBtn3"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:autoSizeMaxTextSize="11sp"
-            android:autoSizeMinTextSize="9sp"
-            android:autoSizeTextType="uniform"
-            android:background="@drawable/bg_widget_chip"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:text="@string/widget_add_preview"
-            android:textColor="@color/text_primary"
-            android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/widgetBtn1Value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:autoSizeMaxTextSize="17sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="@string/widget_add_value_preview"
+                    android:textColor="@color/text_primary"
+                    android:textSize="17sp" />
 
-        <TextView
-            android:id="@+id/widgetBtn4"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="6dp"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:includeFontPadding="false"
+                    android:text="@string/unit_ml"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/widgetBtn2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_widget_chip"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widgetBtn2Value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:autoSizeMaxTextSize="17sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="@string/widget_add_value_preview"
+                    android:textColor="@color/text_primary"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:includeFontPadding="false"
+                    android:text="@string/unit_ml"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="10dp"
             android:layout_weight="1"
-            android:autoSizeMaxTextSize="11sp"
-            android:autoSizeMinTextSize="9sp"
-            android:autoSizeTextType="uniform"
-            android:background="@drawable/bg_widget_chip"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:text="@string/widget_add_preview"
-            android:textColor="@color/text_primary"
-            android:textSize="11sp" />
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/widgetBtn3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_widget_chip"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widgetBtn3Value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:autoSizeMaxTextSize="17sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="@string/widget_add_value_preview"
+                    android:textColor="@color/text_primary"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:includeFontPadding="false"
+                    android:text="@string/unit_ml"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/widgetBtn4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_widget_chip"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widgetBtn4Value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:autoSizeMaxTextSize="17sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="@string/widget_add_value_preview"
+                    android:textColor="@color/text_primary"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:includeFontPadding="false"
+                    android:text="@string/unit_ml"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>
