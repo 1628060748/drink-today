@@ -2,9 +2,9 @@
 
 一个轻量的每日饮水打卡 Android 应用。两个页面：**打卡首页**（水杯水位动效）与**统计历史**（日历三态标记 + 月概览）。
 
-| 打卡首页 | 统计历史 |
-| --- | --- |
-| <img src="docs/preview/today.png" width="320"> | <img src="docs/preview/history.png" width="320"> |
+| 打卡首页 | 统计历史 | 桌面小部件 |
+| --- | --- | --- |
+| <img src="docs/preview/today.png" width="260"> | <img src="docs/preview/history.png" width="260"> | <img src="docs/preview/widget.png" width="360"> |
 
 > 上图为按本项目实际绘制参数（杯型路径、水波正弦叠加、配色、栅格尺寸）等比例渲染的设计预览，用于表达视觉与排版，非真机截图。
 
@@ -78,6 +78,7 @@ app/src/main/java/com/drinktoday/
 
 - 采用标准 AppWidget（`RemoteViews`），HyperOS / MIUI / 原生桌面均可在「添加小部件」中找到「喝水打卡」。
 - **水杯与 App 同源**：RemoteViews 不能承载自绘 View，这里把真实的 `CupView` 离屏 `measure → layout → draw(Canvas)` 渲染成 Bitmap 再交给 `ImageView`，因此杯型、水位、配色永远与 App 一致，不会出现第二套画法。
+- **按实例尺寸渲染**：读取 `AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT` 推算杯区高度，位图按该尺寸生成，拉伸或换格子时不发虚；杯子居中占主体，数字 20sp、目标/提示 10.5–11.5sp、按钮 28dp。
 - 4 个快捷按钮复用用户在设置里的快捷水量，点击后写入 `DrinkStore` 并立即刷新小部件（附带一次 Toast 反馈）。
 - 同步策略：App 内数据变化（`onStop`）、小部件按钮点击、`ACTION_DATE_CHANGED` / `TIME_SET` / `TIMEZONE_CHANGED` 以及 30 分钟系统周期刷新。
 - 受 RemoteViews 限制，小部件是**静态一帧**：没有水位上涨与水波动画（动画只存在于 App 内）。

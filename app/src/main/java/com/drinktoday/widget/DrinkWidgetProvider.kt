@@ -23,7 +23,7 @@ class DrinkWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         for (id in appWidgetIds) {
-            appWidgetManager.updateAppWidget(id, buildViews(context))
+            updateOne(context, appWidgetManager, id)
         }
     }
 
@@ -33,7 +33,7 @@ class DrinkWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: android.os.Bundle
     ) {
-        appWidgetManager.updateAppWidget(appWidgetId, buildViews(context))
+        updateOne(context, appWidgetManager, appWidgetId)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -65,15 +65,6 @@ class DrinkWidgetProvider : AppWidgetProvider() {
         refreshAll(context)
     }
 
-    private fun buildViews(context: Context) = with(DrinkStore.get(context)) {
-        WidgetRenderer.build(
-            context = context,
-            goalMl = goalMl,
-            totalMl = total(DateX.todayEpochDay()),
-            amounts = quickAmounts
-        )
-    }
-
     companion object {
         const val ACTION_QUICK_ADD = "com.drinktoday.action.WIDGET_QUICK_ADD"
         const val EXTRA_AMOUNT = "extra_amount"
@@ -84,17 +75,24 @@ class DrinkWidgetProvider : AppWidgetProvider() {
             val ids = manager.getAppWidgetIds(
                 ComponentName(context, DrinkWidgetProvider::class.java)
             )
-            if (ids.isEmpty()) return
-            val store = DrinkStore.get(context)
-            val views = WidgetRenderer.build(
-                context = context,
-                goalMl = store.goalMl,
-                totalMl = store.total(DateX.todayEpochDay()),
-                amounts = store.quickAmounts
-            )
             for (id in ids) {
-                manager.updateAppWidget(id, views)
+                updateOne(context, manager, id)
             }
+        }
+
+        /** 每个实例的尺寸可能不同（用户可拉伸），按各自 options 渲染水杯。 */
+        private fun updateOne(context: Context, manager: AppWidgetManager, widgetId: Int) {
+            val store = DrinkStore.get(context)
+            manager.updateAppWidget(
+                widgetId,
+                WidgetRenderer.build(
+                    context = context,
+                    options = manager.getAppWidgetOptions(widgetId),
+                    goalMl = store.goalMl,
+                    totalMl = store.total(DateX.todayEpochDay()),
+                    amounts = store.quickAmounts
+                )
+            )
         }
     }
 }

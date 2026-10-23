@@ -7,24 +7,15 @@
     android:paddingStart="16dp"
     android:paddingTop="14dp"
     android:paddingEnd="16dp"
-    android:paddingBottom="14dp">
+    android:paddingBottom="12dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-medium"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="@string/title_today"
-        android:textColor="@color/text_secondary"
-        android:textSize="12.5sp" />
-
+    <!-- 水杯占满剩余空间，作为整个小部件的主体 -->
     <FrameLayout
         android:id="@+id/widgetCupArea"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:minHeight="72dp">
+        android:minHeight="86dp">
 
         <ImageView
             android:id="@+id/widgetCup"
@@ -38,7 +29,8 @@
         android:id="@+id/widgetInfo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_horizontal|bottom"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
         android:orientation="horizontal">
 
         <TextView
@@ -50,24 +42,24 @@
             android:includeFontPadding="false"
             android:text="@string/widget_total_preview"
             android:textColor="@color/text_primary"
-            android:textSize="26sp" />
+            android:textSize="20sp" />
 
         <TextView
             android:id="@+id/widgetGoal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
+            android:layout_marginStart="4dp"
             android:includeFontPadding="false"
             android:text="@string/widget_goal_preview"
             android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
+            android:textSize="11.5sp" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/widgetHint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="2dp"
         android:gravity="center_horizontal"
         android:includeFontPadding="false"
         android:maxLines="1"
@@ -78,7 +70,7 @@
     <LinearLayout
         android:id="@+id/widgetButtons"
         android:layout_width="match_parent"
-        android:layout_height="34dp"
+        android:layout_height="28dp"
         android:layout_marginTop="10dp"
         android:baselineAligned="false"
         android:orientation="horizontal">
@@ -88,6 +80,9 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:autoSizeMaxTextSize="11sp"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeTextType="uniform"
             android:background="@drawable/bg_widget_chip"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
@@ -95,14 +90,17 @@
             android:maxLines="1"
             android:text="@string/widget_add_preview"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/widgetBtn2"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginStart="7dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
+            android:autoSizeMaxTextSize="11sp"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeTextType="uniform"
             android:background="@drawable/bg_widget_chip"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
@@ -110,14 +108,17 @@
             android:maxLines="1"
             android:text="@string/widget_add_preview"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/widgetBtn3"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginStart="7dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
+            android:autoSizeMaxTextSize="11sp"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeTextType="uniform"
             android:background="@drawable/bg_widget_chip"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
@@ -125,14 +126,17 @@
             android:maxLines="1"
             android:text="@string/widget_add_preview"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/widgetBtn4"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginStart="7dp"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
+            android:autoSizeMaxTextSize="11sp"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeTextType="uniform"
             android:background="@drawable/bg_widget_chip"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
@@ -140,6 +144,6 @@
             android:maxLines="1"
             android:text="@string/widget_add_preview"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>
