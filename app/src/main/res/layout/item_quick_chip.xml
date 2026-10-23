@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/chipText"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:autoSizeMaxTextSize="17sp"
+    android:autoSizeMinTextSize="11sp"
+    android:autoSizeTextType="uniform"
+    android:background="@drawable/bg_pill_white"
+    android:fontFamily="sans-serif-medium"
+    android:gravity="center"
+    android:includeFontPadding="false"
+    android:lineSpacingExtra="1dp"
+    android:maxLines="2"
+    android:textColor="@color/text_primary"
+    android:textSize="17sp" />

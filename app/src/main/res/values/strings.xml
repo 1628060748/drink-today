@@ -6,7 +6,6 @@
     <string name="title_today">今天喝水了吗</string>
     <string name="today_empty_hint">还没有记录，喝一口开始吧</string>
     <string name="backfill">补录打卡</string>
-    <string name="goal_setting">每日目标</string>
     <string name="goal_remain">目标 %1$d ml · 还差 %2$d ml</string>
     <string name="goal_reached">目标 %1$d ml · 已达标</string>
     <string name="goal_overflow">目标 %1$d ml · 超出 %2$d ml</string>
@@ -32,7 +31,7 @@
     <string name="stat_value_ml">%1$d ml</string>
     <string name="stat_value_none">—</string>
     <string name="chart_goal_hint">虚线为每日目标 %1$d ml</string>
-    <string name="record_amount_desc">记录 %1$d ml</string>
+    <string name="record_amount_desc">记录 %1$d ml，长按可修改</string>
     <string name="nav_today">今日</string>
     <string name="nav_history">历史</string>
     <string name="month_overview">本月概览</string>
@@ -49,10 +48,16 @@
     <string name="action_save">保存记录</string>
     <string name="time_adjusted">已调整为当前时间</string>
 
-    <!-- 目标弹层 -->
-    <string name="goal_title">每日饮水目标</string>
-    <string name="goal_subtitle">成年人大约需要 1500–2000 ml，可按自身情况调整</string>
-    <string name="goal_range">可在 500 – 5000 ml 之间调整，步进 100 ml</string>
+    <!-- 设置弹层 -->
+
+    <string name="settings_title">设置</string>
+    <string name="settings_subtitle">调整每日目标，以及首页 4 个快捷按钮的水量</string>
+    <string name="section_goal">每日目标</string>
+    <string name="section_quick">快捷打卡</string>
+    <string name="quick_hint">长按首页按钮也可以直接进来修改</string>
+    <string name="quick_slot">按钮 %1$d</string>
+    <string name="quick_decrease">减少水量</string>
+    <string name="quick_increase">增加水量</string>
 
     <!-- 日详情 -->
     <string name="day_detail_title">%1$d月%2$d日 记录</string>

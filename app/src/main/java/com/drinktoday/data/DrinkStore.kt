@@ -29,6 +29,10 @@ class DrinkStore private constructor(context: Context) {
     var lastAmountMl: Int = DEFAULT_AMOUNT
         private set
 
+    /** 首页 4 个快捷按钮的水量，用户可分别调整 */
+    var quickAmounts: IntArray = DEFAULT_QUICK_AMOUNTS.copyOf()
+        private set
+
     init {
         load()
     }
@@ -105,6 +109,15 @@ class DrinkStore private constructor(context: Context) {
         return removed
     }
 
+    fun setQuickAmount(index: Int, amountMl: Int) {
+        if (index !in quickAmounts.indices) return
+        val normalized = amountMl.coerceIn(MIN_QUICK_AMOUNT, MAX_QUICK_AMOUNT)
+        if (quickAmounts[index] == normalized) return
+        quickAmounts[index] = normalized
+        persist()
+        notifyChanged()
+    }
+
     fun setGoal(ml: Int) {
         val normalized = ml.coerceIn(MIN_GOAL, MAX_GOAL)
         if (normalized == goalMl) return
@@ -135,6 +148,14 @@ class DrinkStore private constructor(context: Context) {
             val root = JSONObject(raw)
             goalMl = root.optInt(KEY_GOAL, DEFAULT_GOAL).coerceIn(MIN_GOAL, MAX_GOAL)
             lastAmountMl = root.optInt(KEY_LAST_AMOUNT, DEFAULT_AMOUNT).coerceIn(MIN_AMOUNT, MAX_AMOUNT)
+            root.optJSONArray(KEY_QUICK)?.let { array ->
+                val restored = IntArray(QUICK_SLOT_COUNT)
+                for (i in 0 until QUICK_SLOT_COUNT) {
+                    restored[i] = array.optInt(i, DEFAULT_QUICK_AMOUNTS[i])
+                        .coerceIn(MIN_QUICK_AMOUNT, MAX_QUICK_AMOUNT)
+                }
+                quickAmounts = restored
+            }
             val dayJson = root.optJSONObject(KEY_DAYS) ?: return
             val keys = dayJson.keys()
             while (keys.hasNext()) {
@@ -165,6 +186,9 @@ class DrinkStore private constructor(context: Context) {
         val root = JSONObject()
         root.put(KEY_GOAL, goalMl)
         root.put(KEY_LAST_AMOUNT, lastAmountMl)
+        val quickJson = JSONArray()
+        for (value in quickAmounts) quickJson.put(value)
+        root.put(KEY_QUICK, quickJson)
         val dayJson = JSONObject()
         for ((day, list) in days) {
             val array = JSONArray()
@@ -189,12 +213,17 @@ class DrinkStore private constructor(context: Context) {
         const val MIN_AMOUNT = 10
         const val MAX_AMOUNT = 3000
         const val DEFAULT_AMOUNT = 200
+        const val MIN_QUICK_AMOUNT = 50
+        const val MAX_QUICK_AMOUNT = 1000
+        const val QUICK_SLOT_COUNT = 4
+        val DEFAULT_QUICK_AMOUNTS = intArrayOf(150, 200, 300, 500)
         private const val MAX_STREAK_SCAN = 3650
 
         private const val PREF_NAME = "drink_today_store"
         private const val KEY_DATA = "data"
         private const val KEY_GOAL = "goal"
         private const val KEY_LAST_AMOUNT = "lastAmount"
+        private const val KEY_QUICK = "quick"
         private const val KEY_DAYS = "days"
 
         @Volatile

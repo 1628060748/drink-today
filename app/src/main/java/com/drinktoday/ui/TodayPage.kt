@@ -3,17 +3,17 @@ package com.drinktoday.ui
 import android.animation.ValueAnimator
 import android.graphics.Typeface
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
-import android.view.Gravity
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.drinktoday.R
 import com.drinktoday.data.DrinkRecord
 import com.drinktoday.data.DrinkStore
@@ -22,7 +22,7 @@ import com.drinktoday.util.DateX
 import com.drinktoday.util.dpInt
 
 /**
- * 打卡首页：水杯水位、快捷记录、补录与目标设置。
+ * 打卡首页：水杯水位、快捷记录、补录与设置。
  */
 class TodayPage(
     private val activity: AppCompatActivity,
@@ -30,7 +30,6 @@ class TodayPage(
     private val store: DrinkStore
 ) {
 
-    private val quickAmounts = intArrayOf(150, 200, 300, 500)
     private var totalAnimator: ValueAnimator? = null
     private var displayedTotal = 0
     private var currentTotal = 0
@@ -49,9 +48,7 @@ class TodayPage(
     // ------------------------------------------------------------ 初始化
 
     private fun bindActions() {
-        binding.btnGoal.setOnClickListener {
-            GoalSheet(activity, store) { refresh(animate = true) }.show()
-        }
+        binding.btnGoal.setOnClickListener { openSettings() }
         binding.btnBackfill.setOnClickListener {
             AddRecordSheet(activity, store) { record -> onRecordAdded(record) }.show()
         }
@@ -59,58 +56,61 @@ class TodayPage(
         TouchFx.press(binding.btnBackfill, 0.975f)
     }
 
+    private fun openSettings() {
+        SettingsSheet(activity, store) {
+            // 目标或快捷水量变更后重建按钮，并让水位跟随新的目标补间
+            rebuildQuickChips()
+            refresh(animate = true)
+        }.show()
+    }
+
+    private fun rebuildQuickChips() {
+        binding.quickRow.removeAllViews()
+        buildQuickChips()
+    }
+
     private fun buildQuickChips() {
-        for ((index, amount) in quickAmounts.withIndex()) {
-            val chip = createChip(amount)
-            val lp = LinearLayout.LayoutParams(0, dpInt(58f), 1f)
+        val amounts = store.quickAmounts
+        for ((index, amount) in amounts.withIndex()) {
+            val chip = activity.layoutInflater
+                .inflate(R.layout.item_quick_chip, binding.quickRow, false) as TextView
+            chip.text = chipText(amount)
+            chip.contentDescription = activity.getString(R.string.record_amount_desc, amount)
+            chip.setOnClickListener { addQuick(amount) }
+            chip.setOnLongClickListener {
+                openSettings()
+                true
+            }
+
+            val lp = LinearLayout.LayoutParams(0, dpInt(56f), 1f)
             if (index > 0) lp.marginStart = dpInt(8f)
             binding.quickRow.addView(chip, lp)
+            TouchFx.press(chip, 0.94f)
         }
     }
 
-    private fun createChip(amount: Int): View {
-        val container = FrameLayout(activity)
-        container.background = ContextCompat.getDrawable(activity, R.drawable.bg_pill_white)
-        container.contentDescription = activity.getString(R.string.record_amount_desc, amount)
-
-        val inner = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-        }
-        val value = TextView(activity).apply {
-            text = amount.toString()
-            textSize = 16f
-            setTextColor(Palette.TEXT)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            includeFontPadding = false
-            gravity = Gravity.CENTER
-        }
-        val unit = TextView(activity).apply {
-            text = activity.getString(R.string.unit_ml)
-            textSize = 10f
-            setTextColor(Palette.TEXT_3)
-            includeFontPadding = false
-            gravity = Gravity.CENTER
-        }
-        inner.addView(value)
-        inner.addView(
-            unit,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = dpInt(3f) }
+    /**
+     * 单个 TextView 承载「数值 + 单位」两行，避免嵌套测量导致数字被裁切。
+     */
+    private fun chipText(amount: Int): CharSequence {
+        val number = amount.toString()
+        val builder = SpannableStringBuilder(number)
+            .append('\n')
+            .append(activity.getString(R.string.unit_ml))
+        val unitStart = number.length + 1
+        builder.setSpan(
+            RelativeSizeSpan(0.6f),
+            unitStart,
+            builder.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        container.addView(
-            inner,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER
-            )
+        builder.setSpan(
+            ForegroundColorSpan(Palette.TEXT_3),
+            unitStart,
+            builder.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        container.setOnClickListener { addQuick(amount) }
-        TouchFx.press(container, 0.94f)
-        return container
+        return builder
     }
 
     // ------------------------------------------------------------ 数据刷新

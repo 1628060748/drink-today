@@ -11,12 +11,22 @@ import com.drinktoday.util.dp
 /** 统一样式的胶囊标签，避免在多处重复构造。 */
 object Pills {
 
-    fun create(context: Context, text: CharSequence, selected: Boolean = false): TextView {
+    fun create(
+        context: Context,
+        text: CharSequence,
+        selected: Boolean = false,
+        horizontalPadding: Float = 16f
+    ): TextView {
         val view = TextView(context)
         view.text = text
         view.textSize = 13f
         view.gravity = Gravity.CENTER
-        view.setPadding(dp(16f).toInt(), dp(9f).toInt(), dp(16f).toInt(), dp(9f).toInt())
+        view.setPadding(
+            dp(horizontalPadding).toInt(),
+            dp(9f).toInt(),
+            dp(horizontalPadding).toInt(),
+            dp(9f).toInt()
+        )
         view.isClickable = true
         view.includeFontPadding = false
         setSelectedState(context, view, selected)
