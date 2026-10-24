@@ -1,11 +1,17 @@
 package com.drinktoday.ui
 
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import androidx.appcompat.app.AppCompatActivity
 import com.drinktoday.R
 import com.drinktoday.data.DrinkStore
 import com.drinktoday.databinding.PageHistoryBinding
 import com.drinktoday.util.DateX
+import com.drinktoday.util.Volume
 import com.drinktoday.util.dpInt
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.roundToInt
@@ -58,6 +64,7 @@ class HistoryPage(
             activity.getString(R.string.stat_value_ml, totals.values.average().roundToInt())
         }
         binding.tvStreak.text = activity.getString(R.string.stat_value_days, store.currentStreak(today))
+        renderTotals()
 
         val days = DateX.daysInMonth(year, month)
         val values = IntArray(days) { index -> totals[DateX.epochDayOf(year, month, index + 1)] ?: 0 }
@@ -68,6 +75,52 @@ class HistoryPage(
         val isLatest = YearMonth.of(year, month) == YearMonth.now()
         binding.btnNext.isEnabled = !isLatest
         binding.btnNext.alpha = if (isLatest) 0.25f else 1f
+    }
+
+    /** 周 / 月 / 年累计 + 一句具象类比，避免大数字失去体感。 */
+    private fun renderTotals() {
+        val todayEpoch = DateX.todayEpochDay()
+        val today = DateX.toDate(todayEpoch)
+        val weekTotal = store.totalBetween(today.with(DayOfWeek.MONDAY).toEpochDay(), todayEpoch)
+        val monthTotal = store.totalBetween(today.withDayOfMonth(1).toEpochDay(), todayEpoch)
+        val yearTotal = store.totalBetween(today.withDayOfYear(1).toEpochDay(), todayEpoch)
+
+        binding.tvWeekTotal.text = volumeText(weekTotal)
+        binding.tvMonthTotal.text = volumeText(monthTotal)
+        binding.tvYearTotal.text = volumeText(yearTotal)
+        binding.tvTotalCompare.text = comparisonText(weekTotal, monthTotal, yearTotal)
+    }
+
+    private fun volumeText(ml: Int): CharSequence {
+        val (value, unit) = Volume.split(ml)
+        val text = "$value $unit"
+        val spannable = SpannableString(text)
+        spannable.setSpan(
+            RelativeSizeSpan(0.55f), value.length, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        spannable.setSpan(
+            ForegroundColorSpan(Palette.TEXT_3), value.length, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        return spannable
+    }
+
+    private fun comparisonText(week: Int, month: Int, year: Int): String {
+        val (label, ml) = when {
+            year > 0 -> activity.getString(R.string.period_year) to year
+            month > 0 -> activity.getString(R.string.period_month) to month
+            week > 0 -> activity.getString(R.string.period_week) to week
+            else -> return activity.getString(R.string.total_empty)
+        }
+        val volume = Volume.plain(ml)
+        return when {
+            ml < 500 -> activity.getString(R.string.total_tiny, label, volume)
+            ml < 20_000 -> activity.getString(
+                R.string.total_bottles, label, volume, (ml / 500f).roundToInt().coerceAtLeast(1)
+            )
+            else -> activity.getString(
+                R.string.total_barrels, label, volume, (ml / 18_900f).roundToInt().coerceAtLeast(1)
+            )
+        }
     }
 
     private fun shiftMonth(delta: Int) {

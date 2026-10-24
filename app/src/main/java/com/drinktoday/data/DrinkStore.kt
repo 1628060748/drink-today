@@ -59,6 +59,17 @@ class DrinkStore private constructor(context: Context) {
 
     fun count(epochDay: Long): Int = days[epochDay]?.size ?: 0
 
+    /** [from] 到 [to]（含）之间的饮水总量，用于周/月/年累计。 */
+    fun totalBetween(from: Long, to: Long): Int {
+        var sum = 0
+        for ((day, list) in days) {
+            if (day in from..to) {
+                for (r in list) sum += r.amountMl
+            }
+        }
+        return sum
+    }
+
     fun hasRecord(epochDay: Long): Boolean = !days[epochDay].isNullOrEmpty()
 
     /** 全部记录条数（导出提示用） */

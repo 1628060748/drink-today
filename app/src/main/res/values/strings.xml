@@ -35,6 +35,14 @@
     <string name="nav_today">今日</string>
     <string name="nav_history">历史</string>
     <string name="month_overview">本月概览</string>
+    <string name="history_total_title">累计饮水</string>
+    <string name="period_week">本周</string>
+    <string name="period_month">本月</string>
+    <string name="period_year">今年</string>
+    <string name="total_empty">记录第一杯，就能看到累计数据</string>
+    <string name="total_tiny">%1$s累计 %2$s，还不到一瓶矿泉水</string>
+    <string name="total_bottles">%1$s累计 %2$s，约等于 %3$d 瓶 500 ml 矿泉水</string>
+    <string name="total_barrels">%1$s累计 %2$s，约等于 %3$d 桶 18.9 L 桶装水</string>
     <string name="month_empty">本月还没有记录</string>
     <string name="last_month">上个月</string>
     <string name="next_month">下个月</string>
