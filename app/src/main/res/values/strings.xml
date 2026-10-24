@@ -71,10 +71,10 @@
 
     <!-- 我的 -->
     <string name="nav_me">我的</string>
-    <string name="me_subtitle">数据、同步与关于</string>
+    <string name="me_subtitle">数据、备份与关于</string>
     <string name="me_section_settings">设置</string>
     <string name="me_section_data">数据</string>
-    <string name="me_section_sync">云同步</string>
+    <string name="me_section_sync">云端备份</string>
     <string name="me_section_about">关于</string>
     <string name="me_goal">每日目标</string>
     <string name="me_quick">快捷打卡</string>
@@ -86,11 +86,14 @@
     <string name="me_webdav_sub">坚果云、Nextcloud 等 WebDAV 服务</string>
     <string name="me_webdav_unset">未配置</string>
     <string name="me_webdav_set">已配置</string>
-    <string name="me_sync">立即同步</string>
-    <string name="me_sync_sub">先合并云端记录，再上传本地数据</string>
-    <string name="me_syncing">正在同步…</string>
-    <string name="me_never_synced">尚未同步</string>
-    <string name="me_last_sync">上次同步：%1$s</string>
+    <string name="me_backup">备份到云端</string>
+    <string name="me_restore">从云端恢复</string>
+    <string name="me_backup_sub">整份上传，覆盖云端备份文件</string>
+    <string name="me_restore_sub">用云端备份覆盖本机数据，需确认</string>
+    <string name="backup_running">正在处理…</string>
+    <string name="backup_never">尚未备份</string>
+    <string name="last_backup">上次备份：%1$s</string>
+    <string name="last_restore">上次恢复：%1$s</string>
     <string name="me_version">版本</string>
     <string name="me_github">开源地址</string>
     <string name="me_github_sub">github.com/1628060748/drink-today</string>
@@ -98,15 +101,21 @@
     <string name="me_footer">今天喝水了吗 · 一个轻量的饮水打卡工具</string>
 
     <!-- 导入导出 / 同步 -->
+    <string name="backup_success">备份完成，共 %1$d 条记录</string>
+    <string name="backup_none">云端还没有备份文件，请先备份一次</string>
+    <string name="backup_need_config">请先配置 WebDAV 账号</string>
+    <string name="restore_title">从云端恢复？</string>
+    <string name="restore_message">云端备份包含 %1$d 条记录，将替换本机现有的 %2$d 条记录，此操作不可撤销。</string>
+    <string name="restore_confirm">恢复</string>
+    <string name="restore_success">已恢复 %1$d 条记录</string>
+    <string name="action_cancel">取消</string>
     <string name="export_success">已导出 %1$d 条记录</string>
     <string name="export_failed">导出失败：%1$s</string>
     <string name="import_success">导入完成，新增 %1$d 条记录</string>
     <string name="import_empty">文件里没有新的记录</string>
     <string name="import_failed">导入失败：%1$s</string>
-    <string name="sync_need_config">请先配置 WebDAV 账号</string>
-    <string name="sync_success">同步完成，合并 %1$d 条记录</string>
-    <string name="sync_failed">同步失败：%1$s</string>
-    <string name="sync_failed_short">同步失败，详情见下方</string>
+    <string name="sync_failed">操作失败：%1$s</string>
+    <string name="sync_failed_short">操作失败，详情见下方</string>
     <string name="webdav_title">WebDAV 同步</string>
     <string name="webdav_subtitle">把数据备份到自己的网盘，换机或多设备时合并记录</string>
     <string name="webdav_server">服务器地址</string>

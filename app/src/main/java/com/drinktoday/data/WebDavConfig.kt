@@ -47,6 +47,11 @@ class WebDavConfig private constructor(context: Context) {
         get() = prefs.getLong(KEY_LAST_SYNC, 0L)
         set(value) = prefs.edit().putLong(KEY_LAST_SYNC, value).apply()
 
+    /** 最后一次云端操作："backup" 或 "restore" */
+    var lastAction: String
+        get() = prefs.getString(KEY_LAST_ACTION, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_LAST_ACTION, value).apply()
+
     val isConfigured: Boolean
         get() = server.isNotBlank() && user.isNotBlank()
 
@@ -64,6 +69,7 @@ class WebDavConfig private constructor(context: Context) {
         private const val KEY_USER = "user"
         private const val KEY_PASSWORD = "password"
         private const val KEY_LAST_SYNC = "lastSync"
+        private const val KEY_LAST_ACTION = "lastAction"
         private const val KEY_FOLDER = "folder"
 
         @Volatile

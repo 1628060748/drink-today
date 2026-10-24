@@ -33,8 +33,17 @@ class DrinkStore private constructor(context: Context) {
     var quickAmounts: IntArray = DEFAULT_QUICK_AMOUNTS.copyOf()
         private set
 
+    /** 本地数据最后修改时间（毫秒），同步时用于「以较新的一方为准」 */
+    var updatedAt: Long = 0L
+        private set
+
     init {
         load()
+        // 旧版本数据没有时间戳：视作刚刚修改，避免首次同步被更旧的云端数据覆盖
+        if (updatedAt <= 0L && days.isNotEmpty()) {
+            updatedAt = System.currentTimeMillis()
+            persist()
+        }
     }
 
     // ---------------------------------------------------------------- 读取
@@ -96,6 +105,7 @@ class DrinkStore private constructor(context: Context) {
         list.add(record)
         list.sortBy { it.timeMillis }
         lastAmountMl = amount
+        updatedAt = System.currentTimeMillis()
         persist()
         notifyChanged()
         return record
@@ -106,6 +116,7 @@ class DrinkStore private constructor(context: Context) {
         val removed = list.removeAll { it.id == id }
         if (list.isEmpty()) days.remove(epochDay)
         if (removed) {
+            updatedAt = System.currentTimeMillis()
             persist()
             notifyChanged()
         }
@@ -117,6 +128,7 @@ class DrinkStore private constructor(context: Context) {
         val normalized = amountMl.coerceIn(MIN_QUICK_AMOUNT, MAX_QUICK_AMOUNT)
         if (quickAmounts[index] == normalized) return
         quickAmounts[index] = normalized
+        updatedAt = System.currentTimeMillis()
         persist()
         notifyChanged()
     }
@@ -125,6 +137,7 @@ class DrinkStore private constructor(context: Context) {
         val normalized = ml.coerceIn(MIN_GOAL, MAX_GOAL)
         if (normalized == goalMl) return
         goalMl = normalized
+        updatedAt = System.currentTimeMillis()
         persist()
         notifyChanged()
     }
@@ -190,6 +203,7 @@ class DrinkStore private constructor(context: Context) {
         }
 
         if (added > 0 || applySettings) {
+            updatedAt = System.currentTimeMillis()
             persist()
             notifyChanged()
         }
@@ -216,46 +230,71 @@ class DrinkStore private constructor(context: Context) {
         val raw = prefs.getString(KEY_DATA, null) ?: return
         try {
             val root = JSONObject(raw)
-            goalMl = root.optInt(KEY_GOAL, DEFAULT_GOAL).coerceIn(MIN_GOAL, MAX_GOAL)
-            lastAmountMl = root.optInt(KEY_LAST_AMOUNT, DEFAULT_AMOUNT).coerceIn(MIN_AMOUNT, MAX_AMOUNT)
-            root.optJSONArray(KEY_QUICK)?.let { array ->
-                val restored = IntArray(QUICK_SLOT_COUNT)
-                for (i in 0 until QUICK_SLOT_COUNT) {
-                    restored[i] = array.optInt(i, DEFAULT_QUICK_AMOUNTS[i])
-                        .coerceIn(MIN_QUICK_AMOUNT, MAX_QUICK_AMOUNT)
-                }
-                quickAmounts = restored
-            }
-            val dayJson = root.optJSONObject(KEY_DAYS) ?: return
-            val keys = dayJson.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                val epochDay = key.toLongOrNull() ?: continue
-                val array = dayJson.optJSONArray(key) ?: continue
-                val list = ArrayList<DrinkRecord>(array.length())
-                for (i in 0 until array.length()) {
-                    val obj = array.optJSONObject(i) ?: continue
-                    val amount = obj.optInt("a", 0)
-                    val time = obj.optLong("t", 0L)
-                    if (amount > 0 && time > 0L) {
-                        list.add(DrinkRecord(obj.optLong("id", i.toLong()), time, amount))
-                    }
-                }
-                if (list.isNotEmpty()) {
-                    list.sortBy { it.timeMillis }
-                    days[epochDay] = list
-                }
-            }
+            applySettingsFrom(root)
+            updatedAt = root.optLong(KEY_UPDATED_AT, 0L)
+            days.clear()
+            days.putAll(parseDays(root))
         } catch (e: Exception) {
             // 数据损坏时保持空状态而不是崩溃；随后任意写入都会覆盖为合法 JSON。
             days.clear()
         }
     }
 
+    private fun applySettingsFrom(root: JSONObject) {
+        goalMl = root.optInt(KEY_GOAL, goalMl).coerceIn(MIN_GOAL, MAX_GOAL)
+        lastAmountMl = root.optInt(KEY_LAST_AMOUNT, lastAmountMl).coerceIn(MIN_AMOUNT, MAX_AMOUNT)
+        root.optJSONArray(KEY_QUICK)?.let { array ->
+            val restored = IntArray(QUICK_SLOT_COUNT)
+            for (i in 0 until QUICK_SLOT_COUNT) {
+                restored[i] = array.optInt(i, DEFAULT_QUICK_AMOUNTS[i])
+                    .coerceIn(MIN_QUICK_AMOUNT, MAX_QUICK_AMOUNT)
+            }
+            quickAmounts = restored
+        }
+    }
+
+    private fun parseDays(root: JSONObject): HashMap<Long, ArrayList<DrinkRecord>> {
+        val result = HashMap<Long, ArrayList<DrinkRecord>>()
+        val dayJson = root.optJSONObject(KEY_DAYS) ?: return result
+        val keys = dayJson.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val epochDay = key.toLongOrNull() ?: continue
+            val array = dayJson.optJSONArray(key) ?: continue
+            val list = ArrayList<DrinkRecord>(array.length())
+            for (i in 0 until array.length()) {
+                val obj = array.optJSONObject(i) ?: continue
+                val amount = obj.optInt("a", 0)
+                val time = obj.optLong("t", 0L)
+                if (amount > 0 && time > 0L) {
+                    list.add(DrinkRecord(obj.optLong("id", i.toLong()), time, amount))
+                }
+            }
+            if (list.isNotEmpty()) {
+                list.sortBy { it.timeMillis }
+                result[epochDay] = list
+            }
+        }
+        return result
+    }
+
+    /** 用云端数据整份替换本地（同步下载），时间戳采用文件内的值。 */
+    fun replaceFromJson(raw: String) {
+        val root = JSONObject(raw)
+        applySettingsFrom(root)
+        updatedAt = root.optLong(KEY_UPDATED_AT, 0L)
+        if (updatedAt <= 0L) updatedAt = System.currentTimeMillis()
+        days.clear()
+        days.putAll(parseDays(root))
+        persist()
+        notifyChanged()
+    }
+
     private fun buildJson(): String {
         val root = JSONObject()
         root.put(KEY_GOAL, goalMl)
         root.put(KEY_LAST_AMOUNT, lastAmountMl)
+        root.put(KEY_UPDATED_AT, updatedAt)
         val quickJson = JSONArray()
         for (value in quickAmounts) quickJson.put(value)
         root.put(KEY_QUICK, quickJson)
@@ -299,9 +338,32 @@ class DrinkStore private constructor(context: Context) {
         private const val KEY_LAST_AMOUNT = "lastAmount"
         private const val KEY_QUICK = "quick"
         private const val KEY_DAYS = "days"
+        private const val KEY_UPDATED_AT = "updatedAt"
 
         @Volatile
         private var instance: DrinkStore? = null
+
+        /** 统计一份备份 JSON 里的记录条数（恢复前确认用）。 */
+        fun payloadRecordCount(raw: String): Int = try {
+            val dayJson = JSONObject(raw).optJSONObject(KEY_DAYS)
+            var total = 0
+            if (dayJson != null) {
+                val keys = dayJson.keys()
+                while (keys.hasNext()) {
+                    total += dayJson.optJSONArray(keys.next())?.length() ?: 0
+                }
+            }
+            total
+        } catch (e: Exception) {
+            0
+        }
+
+        /** 读取一份备份 JSON 里的修改时间；无该字段视为 0（旧格式）。 */
+        fun payloadUpdatedAt(raw: String): Long = try {
+            JSONObject(raw).optLong(KEY_UPDATED_AT, 0L)
+        } catch (e: Exception) {
+            0L
+        }
 
         fun get(context: Context): DrinkStore =
             instance ?: synchronized(this) {

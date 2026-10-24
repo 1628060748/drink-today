@@ -1,5 +1,6 @@
 package com.drinktoday.ui
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.util.TypedValue
@@ -16,6 +17,7 @@ import com.drinktoday.R
 import com.drinktoday.data.DrinkStore
 import com.drinktoday.data.WebDavClient
 import com.drinktoday.data.WebDavConfig
+import com.drinktoday.data.WebDavEndpoint
 import com.drinktoday.databinding.PageMeBinding
 import com.drinktoday.util.dpInt
 import java.text.SimpleDateFormat
@@ -35,7 +37,7 @@ class MePage(
 ) {
 
     private val webDav = WebDavConfig.get(activity)
-    private var syncing = false
+    private var busy = false
 
     private lateinit var tvGoalValue: TextView
     private lateinit var tvQuickValue: TextView
@@ -94,10 +96,17 @@ class MePage(
 
         addRow(
             binding.cardSync,
-            activity.getString(R.string.me_sync),
-            activity.getString(R.string.me_sync_sub),
+            activity.getString(R.string.me_backup),
+            activity.getString(R.string.me_backup_sub),
             null
-        ) { startSync() }
+        ) { backupToCloud() }
+
+        addRow(
+            binding.cardSync,
+            activity.getString(R.string.me_restore),
+            activity.getString(R.string.me_restore_sub),
+            null
+        ) { restoreFromCloud() }
 
         addRow(
             binding.cardAbout,
@@ -219,12 +228,16 @@ class MePage(
     private fun renderSyncState() {
         binding.tvSyncState.setTextColor(Palette.TEXT_3)
         binding.tvSyncState.text = when {
-            syncing -> activity.getString(R.string.me_syncing)
-            webDav.lastSyncAt <= 0L -> activity.getString(R.string.me_never_synced)
-            else -> activity.getString(
-                R.string.me_last_sync,
-                SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(webDav.lastSyncAt))
-            )
+            busy -> activity.getString(R.string.backup_running)
+            webDav.lastSyncAt <= 0L -> activity.getString(R.string.backup_never)
+            else -> {
+                val time = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+                    .format(Date(webDav.lastSyncAt))
+                activity.getString(
+                    if (webDav.lastAction == ACTION_RESTORE) R.string.last_restore else R.string.last_backup,
+                    time
+                )
+            }
         }
     }
 
@@ -289,57 +302,95 @@ class MePage(
         }.start()
     }
 
-    // ------------------------------------------------------------ 同步
+    // ------------------------------------------------------------ 云端备份 / 恢复
 
-    private fun startSync() {
-        if (syncing) return
-        val endpoint = webDav.endpoint()
-        if (!endpoint.isConfigured) {
-            toast(activity.getString(R.string.sync_need_config))
-            openWebDav()
-            return
-        }
-
-        syncing = true
+    /**
+     * 备份是「整份覆盖」，不是同步：本地数据完整上传，覆盖云端那一份。
+     * 这样删除、修改都会如实反映到云端，不存在合并复活旧数据的问题。
+     */
+    private fun backupToCloud() {
+        if (busy) return
+        val endpoint = requireEndpoint() ?: return
+        busy = true
         renderSyncState()
+
+        val json = store.exportJson()
+        val count = store.recordCount()
         Thread {
-            val remote = try {
-                WebDavClient.download(endpoint)
+            try {
+                WebDavClient.upload(endpoint, json)
+                ui { finishAction(ACTION_BACKUP, activity.getString(R.string.backup_success, count)) }
             } catch (e: Exception) {
-                ui { finishSyncWithError(e) }
-                return@Thread
-            }
-
-            ui {
-                // 云端只合并记录，不覆盖本机的目标与快捷水量
-                val added = if (remote.isNullOrBlank()) {
-                    0
-                } else {
-                    store.importJson(remote, applySettings = false).addedRecords
-                }
-                val merged = store.exportJson()
-                refresh()
-                onDataChanged()
-
-                Thread {
-                    try {
-                        WebDavClient.upload(endpoint, merged)
-                        webDav.lastSyncAt = System.currentTimeMillis()
-                        ui {
-                            syncing = false
-                            refresh()
-                            toast(activity.getString(R.string.sync_success, added))
-                        }
-                    } catch (e: Exception) {
-                        ui { finishSyncWithError(e) }
-                    }
-                }.start()
+                ui { finishWithError(e) }
             }
         }.start()
     }
 
-    private fun finishSyncWithError(e: Exception) {
-        syncing = false
+    /** 恢复是「整份替换」：用云端备份覆盖本机，操作前二次确认。 */
+    private fun restoreFromCloud() {
+        if (busy) return
+        val endpoint = requireEndpoint() ?: return
+        busy = true
+        renderSyncState()
+
+        Thread {
+            val remote = try {
+                WebDavClient.download(endpoint)
+            } catch (e: Exception) {
+                ui { finishWithError(e) }
+                return@Thread
+            }
+            ui {
+                busy = false
+                renderSyncState()
+                if (remote.isNullOrBlank()) {
+                    toast(activity.getString(R.string.backup_none))
+                } else {
+                    confirmRestore(remote)
+                }
+            }
+        }.start()
+    }
+
+    private fun confirmRestore(raw: String) {
+        val remoteCount = DrinkStore.payloadRecordCount(raw)
+        val localCount = store.recordCount()
+        AlertDialog.Builder(activity)
+            .setTitle(activity.getString(R.string.restore_title))
+            .setMessage(activity.getString(R.string.restore_message, remoteCount, localCount))
+            .setNegativeButton(activity.getString(R.string.action_cancel), null)
+            .setPositiveButton(activity.getString(R.string.restore_confirm)) { _, _ ->
+                try {
+                    store.replaceFromJson(raw)
+                    finishAction(ACTION_RESTORE, activity.getString(R.string.restore_success, remoteCount))
+                } catch (e: Exception) {
+                    finishWithError(e)
+                }
+            }
+            .show()
+    }
+
+    private fun requireEndpoint(): WebDavEndpoint? {
+        val endpoint = webDav.endpoint()
+        if (!endpoint.isConfigured) {
+            toast(activity.getString(R.string.backup_need_config))
+            openWebDav()
+            return null
+        }
+        return endpoint
+    }
+
+    private fun finishAction(kind: String, message: String) {
+        busy = false
+        webDav.lastAction = kind
+        webDav.lastSyncAt = System.currentTimeMillis()
+        refresh()
+        onDataChanged()
+        toast(message)
+    }
+
+    private fun finishWithError(e: Exception) {
+        busy = false
         val detail = e.message.orEmpty().ifBlank { "未知错误" }
         // 失败原因留在页面上，避免 Toast 一闪而过读不完
         binding.tvSyncState.setTextColor(Palette.ERROR)
@@ -376,3 +427,6 @@ class MePage(
         }
     }
 }
+
+private const val ACTION_BACKUP = "backup"
+private const val ACTION_RESTORE = "restore"
