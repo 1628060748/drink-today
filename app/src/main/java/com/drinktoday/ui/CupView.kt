@@ -17,6 +17,7 @@ import android.view.animation.OvershootInterpolator
 import com.drinktoday.util.dp
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * 水杯视图：玻璃杯轮廓 + 双层正弦水波 + 上升气泡 + 水位弹性动画。
@@ -157,7 +158,8 @@ class CupView @JvmOverloads constructor(
      * 角度由传感器层做过低通平滑，这里只做上限保护。
      */
     fun setWaterTilt(degrees: Float) {
-        val clamped = degrees.coerceIn(-12f, 12f)
+        val limit = maxTiltForLevel()
+        val clamped = degrees.coerceIn(-limit, limit)
         if (kotlin.math.abs(clamped - waterTilt) < 0.05f) return
         waterTilt = clamped
         if (level > 0.0015f) invalidate()
@@ -248,8 +250,8 @@ class CupView @JvmOverloads constructor(
         timeSec += dt
 
         // 水面晃动后逐渐平息
-        if (slosh > 0f) slosh = (slosh - dt / 1.5f).coerceAtLeast(0f)
-        phase += dt * (1.45f + slosh * 4.2f)
+        if (slosh > 0f) slosh = (slosh - dt / 1.2f).coerceAtLeast(0f)
+        phase += dt * (1.45f + sqrt(slosh) * 3.6f)
         if (phase > TWO_PI) phase -= TWO_PI
         invalidate()
     }
@@ -379,7 +381,9 @@ class CupView @JvmOverloads constructor(
         val waterHeight = bottom - surfaceY
         if (waterHeight < dp(2.5f)) return
 
-        val amp = min(dp(2.4f) + slosh * dp(6.2f), waterHeight * 0.42f)
+        // 用 sqrt 压缩动态范围：轻摇也明显，重摇不会大到挡住内容
+        val sloshCurve = sqrt(slosh)
+        val amp = min(dp(2.4f) + sloshCurve * dp(4.6f), waterHeight * 0.40f)
         val slope = kotlin.math.tan(Math.toRadians(waterTilt.toDouble())).toFloat()
 
         canvas.save()
@@ -448,6 +452,22 @@ class CupView @JvmOverloads constructor(
         return amp * (0.62f * a + 0.38f * b)
     }
 
+    /**
+     * 水位越高，可倾斜的角度越小——否则水面会从杯口「穿出去」。
+     * 下限保留 10°，保证满杯时仍有轻微跟随。
+     */
+    private fun maxTiltForLevel(): Float {
+        val halfWidth = cupRect.width() / 2f
+        if (halfWidth <= 0f) return MAX_TILT
+        val usableHeight = cupRect.height() - dp(9f)
+        val headroom = ((1f - level.coerceIn(0f, 1f)) * usableHeight * 0.9f)
+            .coerceAtLeast(dp(5f))
+        val byHeadroom = Math.toDegrees(
+            kotlin.math.atan((headroom / halfWidth).toDouble())
+        ).toFloat()
+        return byHeadroom.coerceIn(MIN_TILT, MAX_TILT)
+    }
+
     /** 倾斜造成的表面高度偏移：绕杯子中心旋转。 */
     private fun tiltAt(x: Float, slope: Float): Float = (x - cupRect.centerX()) * slope
 
@@ -495,6 +515,9 @@ class CupView @JvmOverloads constructor(
     }
 
     private companion object {
+        /** 倾斜角度上限（水位低时）与下限（满杯时） */
+        const val MAX_TILT = 26f
+        const val MIN_TILT = 10f
         const val WAVE_STEPS = 44
         const val TWO_PI = 6.2831855f
     }

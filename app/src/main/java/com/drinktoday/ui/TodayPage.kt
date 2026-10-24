@@ -333,16 +333,16 @@ class TodayPage(
         /** 判定「手机平放」的平面重力阈值 */
         const val FLAT_THRESHOLD = 2.5f
 
-        /** 倾斜增益与上限角度：1:1 跟随重力，20° 上限足够明显又不失真 */
-        const val TILT_GAIN = 1f
-        const val MAX_TILT = 20f
+        /** 倾斜增益：略大于 1，让小幅度倾斜也看得出来 */
+        const val TILT_GAIN = 1.35f
+        const val MAX_TILT = 26f
 
         /** 倾斜跟随的时间常数，越小越跟手 */
         const val TILT_SMOOTHING_SECONDS = 0.06f
 
         /** 摇晃判定：超出重力的加速度、映射到 0..1 的尺度、防抖间隔 */
-        const val SHAKE_THRESHOLD = 2.2f
-        const val SHAKE_SCALE = 6f
+        const val SHAKE_THRESHOLD = 2f
+        const val SHAKE_SCALE = 5f
         const val SHAKE_COOLDOWN_MS = 260L
     }
 }
