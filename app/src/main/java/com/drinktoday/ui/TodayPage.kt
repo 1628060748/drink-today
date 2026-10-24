@@ -27,6 +27,7 @@ import com.drinktoday.databinding.PageTodayBinding
 import com.drinktoday.util.DateX
 import com.drinktoday.util.dpInt
 import kotlin.math.atan2
+import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.sqrt
 
@@ -131,10 +132,11 @@ class TodayPage(
     private val gravityVec = FloatArray(3)
     private var sensorsOn = false
     private var lastShakeAt = 0L
+    private var lastMotionNanos = 0L
     private var smoothTilt = 0f
 
     private val motionListener = object : SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent) = handleMotion(event.values)
+        override fun onSensorChanged(event: SensorEvent) = handleMotion(event)
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
     }
 
@@ -143,7 +145,8 @@ class TodayPage(
      *  1. 低通滤出重力方向 → 手机左右倾斜时水面跟着倾斜；
      *  2. 合矢量减去重力 → 摇晃强度，映射成波幅与涟漪。
      */
-    private fun handleMotion(values: FloatArray) {
+    private fun handleMotion(event: SensorEvent) {
+        val values = event.values
         val alpha = GRAVITY_SMOOTHING
         for (i in 0..2) gravityVec[i] = alpha * gravityVec[i] + (1f - alpha) * values[i]
 
@@ -154,8 +157,18 @@ class TodayPage(
         } else {
             Math.toDegrees(atan2(gravityVec[0].toDouble(), gravityVec[1].toDouble())).toFloat()
         }
+
+        // 按真实间隔做指数平滑，采样率变化时手感一致（不会再出现阶梯感）
+        val dt = if (lastMotionNanos == 0L) {
+            0.02f
+        } else {
+            ((event.timestamp - lastMotionNanos) / 1_000_000_000f).coerceIn(0.001f, 0.2f)
+        }
+        lastMotionNanos = event.timestamp
+        val follow = 1f - exp(-dt / TILT_SMOOTHING_SECONDS)
+
         val target = (roll * TILT_GAIN).coerceIn(-MAX_TILT, MAX_TILT)
-        smoothTilt += (target - smoothTilt) * 0.22f
+        smoothTilt += (target - smoothTilt) * follow
         binding.cupView.setWaterTilt(smoothTilt)
 
         val magnitude = sqrt(
@@ -177,7 +190,8 @@ class TodayPage(
         if (sensorsOn) return
         val manager = sensorManager ?: return
         val sensor = accelerometer ?: return
-        manager.registerListener(motionListener, sensor, SensorManager.SENSOR_DELAY_UI)
+        // GAME 档约 50 Hz：UI 档只有约 16 Hz，倾斜会明显一顿一顿
+        manager.registerListener(motionListener, sensor, SensorManager.SENSOR_DELAY_GAME)
         sensorsOn = true
     }
 
@@ -187,6 +201,7 @@ class TodayPage(
         sensorsOn = false
         gravityVec.fill(0f)
         smoothTilt = 0f
+        lastMotionNanos = 0L
         binding.cupView.setWaterTilt(0f)
     }
 
@@ -318,13 +333,16 @@ class TodayPage(
         /** 判定「手机平放」的平面重力阈值 */
         const val FLAT_THRESHOLD = 2.5f
 
-        /** 倾斜增益与上限角度 */
-        const val TILT_GAIN = 0.8f
-        const val MAX_TILT = 11f
+        /** 倾斜增益与上限角度：1:1 跟随重力，20° 上限足够明显又不失真 */
+        const val TILT_GAIN = 1f
+        const val MAX_TILT = 20f
+
+        /** 倾斜跟随的时间常数，越小越跟手 */
+        const val TILT_SMOOTHING_SECONDS = 0.06f
 
         /** 摇晃判定：超出重力的加速度、映射到 0..1 的尺度、防抖间隔 */
-        const val SHAKE_THRESHOLD = 2.8f
-        const val SHAKE_SCALE = 9f
+        const val SHAKE_THRESHOLD = 2.2f
+        const val SHAKE_SCALE = 6f
         const val SHAKE_COOLDOWN_MS = 260L
     }
 }

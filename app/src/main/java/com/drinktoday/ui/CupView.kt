@@ -53,8 +53,6 @@ class CupView @JvmOverloads constructor(
     /** 重力倾斜角（度），正数表示右侧更低 */
     private var waterTilt = 0f
 
-    /** 摇晃产生的水面涟漪：[0] 生成时刻（timeSec），[1] 强度 0..1 */
-    private val ripples = ArrayList<FloatArray>()
 
     // ------------------------------------------------------------ 几何与绘制缓存
 
@@ -88,11 +86,6 @@ class CupView @JvmOverloads constructor(
     private val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x59FFFFFF
-    }
-    private val ripplePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = dp(1.2f)
         color = 0x59FFFFFF
     }
     private val groundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -171,15 +164,12 @@ class CupView @JvmOverloads constructor(
     }
 
     /**
-     * 摇晃手机：水波抬升 + 水面涟漪。
-     * [strength] 0..1，越大波幅越高、涟漪越明显。
+     * 摇晃手机：直接抬升波幅，[strength] 0..1 越大晃动越剧烈。
      */
     fun onShake(strength: Float) {
         val s = strength.coerceIn(0f, 1f)
         if (s <= 0.05f || level <= 0.0015f) return
-        slosh = (slosh + s * 0.85f).coerceAtMost(1f)
-        ripples.add(floatArrayOf(timeSec, s))
-        if (ripples.size > 4) ripples.removeAt(0)
+        slosh = (slosh + s).coerceAtMost(1f)
         updateLoopState()
         invalidate()
     }
@@ -259,10 +249,7 @@ class CupView @JvmOverloads constructor(
 
         // 水面晃动后逐渐平息
         if (slosh > 0f) slosh = (slosh - dt / 1.5f).coerceAtLeast(0f)
-        if (ripples.isNotEmpty()) {
-            ripples.removeAll { timeSec - it[0] > 1f }
-        }
-        phase += dt * (1.45f + slosh * 3.4f)
+        phase += dt * (1.45f + slosh * 4.2f)
         if (phase > TWO_PI) phase -= TWO_PI
         invalidate()
     }
@@ -392,7 +379,7 @@ class CupView @JvmOverloads constructor(
         val waterHeight = bottom - surfaceY
         if (waterHeight < dp(2.5f)) return
 
-        val amp = min(dp(2.6f) + slosh * dp(3.4f), waterHeight * 0.45f)
+        val amp = min(dp(2.4f) + slosh * dp(6.2f), waterHeight * 0.42f)
         val slope = kotlin.math.tan(Math.toRadians(waterTilt.toDouble())).toFloat()
 
         canvas.save()
@@ -411,9 +398,6 @@ class CupView @JvmOverloads constructor(
         // 水面高光
         buildSurfaceLine(surfacePath, surfaceY, amp, slope)
         canvas.drawPath(surfacePath, surfacePaint)
-
-        // 摇晃涟漪
-        drawRipples(canvas, surfaceY)
 
         // 气泡
         drawBubbles(canvas, surfaceY, bottom)
@@ -467,28 +451,6 @@ class CupView @JvmOverloads constructor(
     /** 倾斜造成的表面高度偏移：绕杯子中心旋转。 */
     private fun tiltAt(x: Float, slope: Float): Float = (x - cupRect.centerX()) * slope
 
-    private fun drawRipples(canvas: Canvas, surfaceY: Float) {
-        if (ripples.isEmpty()) return
-        val cx = cupRect.centerX()
-        for (ripple in ripples) {
-            val age = timeSec - ripple[0]
-            if (age < 0f || age > RIPPLE_LIFE) continue
-            val progress = age / RIPPLE_LIFE
-            val strength = ripple[1]
-            val radius = cupRect.width() * (0.16f + 0.42f * progress) * (0.78f + 0.22f * strength)
-            val alpha = ((1f - progress) * 120f * strength).toInt().coerceIn(0, 255)
-            if (alpha <= 0) continue
-            ripplePaint.color = (alpha shl 24) or 0x00FFFFFF
-            canvas.drawOval(
-                cx - radius,
-                surfaceY - radius * 0.2f,
-                cx + radius,
-                surfaceY + radius * 0.2f,
-                ripplePaint
-            )
-        }
-    }
-
     private fun drawBubbles(canvas: Canvas, surfaceY: Float, bottom: Float) {
         val waterHeight = bottom - surfaceY
         if (waterHeight < dp(16f)) return
@@ -533,7 +495,6 @@ class CupView @JvmOverloads constructor(
     }
 
     private companion object {
-        const val RIPPLE_LIFE = 0.9f
         const val WAVE_STEPS = 44
         const val TWO_PI = 6.2831855f
     }
