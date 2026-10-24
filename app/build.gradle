@@ -3,6 +3,15 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// 签名信息放在 rootProject 的 keystore.properties（不入库）；
+// 缺少该文件时自动跳过签名，保证他人克隆后仍可 assembleDebug。
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+def hasReleaseKeystore = keystorePropsFile.exists()
+if (hasReleaseKeystore) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace 'com.drinktoday'
     compileSdk 34
@@ -16,6 +25,22 @@ android {
         vectorDrawables.useSupportLibrary = false
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+                // minSdk 26 不需要 v1（JAR）签名；开启 v2+v3 以支持未来的密钥轮换
+                enableV1Signing false
+                enableV2Signing true
+                enableV3Signing true
+                enableV4Signing false
+            }
+        }
+    }
+
     buildTypes {
         debug {
             minifyEnabled false
@@ -24,6 +49,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
