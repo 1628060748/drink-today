@@ -48,11 +48,9 @@ class TodayPage(
     // ------------------------------------------------------------ 初始化
 
     private fun bindActions() {
-        binding.btnGoal.setOnClickListener { openSettings() }
         binding.btnBackfill.setOnClickListener {
             AddRecordSheet(activity, store) { record -> onRecordAdded(record) }.show()
         }
-        TouchFx.press(binding.btnGoal, 0.9f)
         TouchFx.press(binding.btnBackfill, 0.975f)
     }
 

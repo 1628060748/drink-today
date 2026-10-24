@@ -43,3 +43,9 @@ class DaySummary(
 
     val ratio: Float get() = if (goalMl <= 0) 0f else totalMl.toFloat() / goalMl
 }
+
+/** 导入/同步的结果统计。 */
+data class ImportResult(
+    val addedRecords: Int,
+    val skippedRecords: Int
+)

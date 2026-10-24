@@ -41,16 +41,6 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
         </LinearLayout>
-
-        <ImageView
-            android:id="@+id/btnGoal"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:background="@drawable/bg_circle_white"
-            android:contentDescription="@string/settings_title"
-            android:padding="10dp"
-            android:src="@drawable/ic_sliders"
-            app:tint="@color/text_primary" />
     </LinearLayout>
 
     <!-- 水杯 -->

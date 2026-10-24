@@ -69,6 +69,60 @@
     <string name="widget_goal_preview">/ 2000 ml</string>
     <string name="widget_add_value_preview">+150</string>
 
+    <!-- 我的 -->
+    <string name="nav_me">我的</string>
+    <string name="me_subtitle">数据、同步与关于</string>
+    <string name="me_section_settings">设置</string>
+    <string name="me_section_data">数据</string>
+    <string name="me_section_sync">云同步</string>
+    <string name="me_section_about">关于</string>
+    <string name="me_goal">每日目标</string>
+    <string name="me_quick">快捷打卡</string>
+    <string name="me_export">导出数据</string>
+    <string name="me_export_sub">生成 JSON 备份，可用于换机或留存</string>
+    <string name="me_import">导入数据</string>
+    <string name="me_import_sub">与本地合并，同一条记录不会重复</string>
+    <string name="me_webdav">WebDAV 账号</string>
+    <string name="me_webdav_sub">坚果云、Nextcloud 等 WebDAV 服务</string>
+    <string name="me_webdav_unset">未配置</string>
+    <string name="me_webdav_set">已配置</string>
+    <string name="me_sync">立即同步</string>
+    <string name="me_sync_sub">先合并云端记录，再上传本地数据</string>
+    <string name="me_syncing">正在同步…</string>
+    <string name="me_never_synced">尚未同步</string>
+    <string name="me_last_sync">上次同步：%1$s</string>
+    <string name="me_version">版本</string>
+    <string name="me_github">开源地址</string>
+    <string name="me_github_sub">github.com/1628060748/drink-today</string>
+    <string name="me_tech">Kotlin + Canvas 自绘，仅依赖 core-ktx 与 appcompat；数据保存在本机 JSON，除 WebDAV 同步外不联网。</string>
+    <string name="me_no_browser">没有可用的浏览器</string>
+    <string name="me_footer">今天喝水了吗 · 一个轻量的饮水打卡工具</string>
+
+    <!-- 导入导出 / 同步 -->
+    <string name="export_success">已导出 %1$d 条记录</string>
+    <string name="export_failed">导出失败：%1$s</string>
+    <string name="import_success">导入完成，新增 %1$d 条记录</string>
+    <string name="import_empty">文件里没有新的记录</string>
+    <string name="import_failed">导入失败：%1$s</string>
+    <string name="sync_need_config">请先配置 WebDAV 账号</string>
+    <string name="sync_success">同步完成，合并 %1$d 条记录</string>
+    <string name="sync_failed">同步失败：%1$s</string>
+    <string name="webdav_title">WebDAV 同步</string>
+    <string name="webdav_subtitle">把数据备份到自己的网盘，换机或多设备时合并记录</string>
+    <string name="webdav_server">服务器地址</string>
+    <string name="webdav_server_hint">https://dav.jianguoyun.com/dav/</string>
+    <string name="webdav_user">账号</string>
+    <string name="webdav_user_hint">邮箱或用户名</string>
+    <string name="webdav_password">密码</string>
+    <string name="webdav_password_hint">建议填写应用专用密码</string>
+    <string name="webdav_file">远端文件：%1$s</string>
+    <string name="webdav_security">密码仅保存在本机应用私有目录，不会上传到其他服务器</string>
+    <string name="webdav_test">测试连接</string>
+    <string name="webdav_test_ok">连接成功</string>
+    <string name="webdav_test_fail">连接失败：%1$s</string>
+    <string name="webdav_https_only">请使用 https:// 开头的地址</string>
+    <string name="webdav_server_empty">请填写服务器地址与账号</string>
+
     <!-- 日详情 -->
     <string name="day_detail_title">%1$d月%2$d日 记录</string>
     <string name="day_detail_empty">这一天还没有记录</string>

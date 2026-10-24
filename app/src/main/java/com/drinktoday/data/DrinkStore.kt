@@ -52,6 +52,9 @@ class DrinkStore private constructor(context: Context) {
 
     fun hasRecord(epochDay: Long): Boolean = !days[epochDay].isNullOrEmpty()
 
+    /** 全部记录条数（导出提示用） */
+    fun recordCount(): Int = days.values.sumOf { it.size }
+
     fun summary(epochDay: Long, today: Long = DateX.todayEpochDay()): DaySummary =
         DaySummary(epochDay, total(epochDay), goalMl, today)
 
@@ -126,6 +129,73 @@ class DrinkStore private constructor(context: Context) {
         notifyChanged()
     }
 
+    // ---------------------------------------------------------------- 备份 / 同步
+
+    /** 导出为与本地存储完全一致的 JSON，便于备份或云端同步。 */
+    fun exportJson(): String = buildJson()
+
+    /**
+     * 合并导入：按记录 id 去重，不删除本地已有数据。
+     * [applySettings] 为 true 时同时采用文件中的目标与快捷水量（用于「恢复备份」）；
+     * 云端同步传 false，避免旧备份覆盖当前设置。
+     */
+    fun importJson(raw: String, applySettings: Boolean): ImportResult {
+        val root = JSONObject(raw)
+        if (applySettings) {
+            goalMl = root.optInt(KEY_GOAL, goalMl).coerceIn(MIN_GOAL, MAX_GOAL)
+            lastAmountMl = root.optInt(KEY_LAST_AMOUNT, lastAmountMl).coerceIn(MIN_AMOUNT, MAX_AMOUNT)
+            root.optJSONArray(KEY_QUICK)?.let { array ->
+                for (i in 0 until QUICK_SLOT_COUNT) {
+                    quickAmounts[i] = array.optInt(i, quickAmounts[i])
+                        .coerceIn(MIN_QUICK_AMOUNT, MAX_QUICK_AMOUNT)
+                }
+            }
+        }
+
+        var added = 0
+        var skipped = 0
+        val dayJson = root.optJSONObject(KEY_DAYS)
+        if (dayJson != null) {
+            val keys = dayJson.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val epochDay = key.toLongOrNull() ?: continue
+                val array = dayJson.optJSONArray(key) ?: continue
+
+                val target = days[epochDay] ?: ArrayList(4)
+                val knownIds = target.mapTo(HashSet(target.size)) { it.id }
+                var changed = false
+                for (i in 0 until array.length()) {
+                    val obj = array.optJSONObject(i) ?: continue
+                    val id = obj.optLong("id", 0L)
+                    val time = obj.optLong("t", 0L)
+                    val amount = obj.optInt("a", 0)
+                    if (id == 0L || time <= 0L || amount <= 0) {
+                        skipped++
+                        continue
+                    }
+                    if (!knownIds.add(id)) {
+                        skipped++
+                        continue
+                    }
+                    target.add(DrinkRecord(id, time, amount))
+                    added++
+                    changed = true
+                }
+                if (changed) {
+                    target.sortBy { it.timeMillis }
+                    days[epochDay] = target
+                }
+            }
+        }
+
+        if (added > 0 || applySettings) {
+            persist()
+            notifyChanged()
+        }
+        return ImportResult(added, skipped)
+    }
+
     // ---------------------------------------------------------------- 监听
 
     fun addListener(listener: () -> Unit) {
@@ -182,7 +252,7 @@ class DrinkStore private constructor(context: Context) {
         }
     }
 
-    private fun persist() {
+    private fun buildJson(): String {
         val root = JSONObject()
         root.put(KEY_GOAL, goalMl)
         root.put(KEY_LAST_AMOUNT, lastAmountMl)
@@ -203,7 +273,11 @@ class DrinkStore private constructor(context: Context) {
             if (array.length() > 0) dayJson.put(day.toString(), array)
         }
         root.put(KEY_DAYS, dayJson)
-        prefs.edit().putString(KEY_DATA, root.toString()).apply()
+        return root.toString()
+    }
+
+    private fun persist() {
+        prefs.edit().putString(KEY_DATA, buildJson()).apply()
     }
 
     companion object {

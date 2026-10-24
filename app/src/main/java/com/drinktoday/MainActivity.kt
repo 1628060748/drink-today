@@ -13,16 +13,18 @@ import androidx.core.view.WindowInsetsCompat
 import com.drinktoday.data.DrinkStore
 import com.drinktoday.databinding.ActivityMainBinding
 import com.drinktoday.ui.HistoryPage
+import com.drinktoday.ui.MePage
 import com.drinktoday.ui.Palette
 import com.drinktoday.ui.TodayPage
-import com.drinktoday.widget.DrinkWidgetProvider
 import com.drinktoday.util.dpInt
+import com.drinktoday.widget.DrinkWidgetProvider
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var todayPage: TodayPage
     private lateinit var historyPage: HistoryPage
+    private lateinit var mePage: MePage
     private var pageIndex = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +37,7 @@ class MainActivity : AppCompatActivity() {
         val store = DrinkStore.get(this)
         todayPage = TodayPage(this, binding.pageToday, store)
         historyPage = HistoryPage(this, binding.pageHistory, store)
+        mePage = MePage(this, binding.pageMe, store) { onDataChanged() }
 
         applyWindowInsets()
         setupNavigation()
@@ -56,7 +59,10 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         todayPage.onResume()
         todayPage.setPaused(pageIndex != 0)
-        if (pageIndex == 1) historyPage.refresh(animate = false)
+        when (pageIndex) {
+            1 -> historyPage.refresh(animate = false)
+            2 -> mePage.refresh()
+        }
     }
 
     override fun onPause() {
@@ -68,6 +74,12 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
         // 离开 App 时同步桌面小部件，避免桌面数据滞后
         DrinkWidgetProvider.refreshAll(applicationContext)
+    }
+
+    /** 导入、同步、改设置后统一刷新其它页面。 */
+    private fun onDataChanged() {
+        todayPage.refresh(animate = false)
+        historyPage.refresh(animate = false)
     }
 
     // ------------------------------------------------------------ 系统栏
@@ -91,45 +103,65 @@ class MainActivity : AppCompatActivity() {
     private fun setupNavigation() {
         binding.navToday.setOnClickListener { selectPage(0) }
         binding.navHistory.setOnClickListener { selectPage(1) }
+        binding.navMe.setOnClickListener { selectPage(2) }
         binding.pageHistory.root.visibility = View.GONE
+        binding.pageMe.root.visibility = View.GONE
     }
+
+    private fun pageRoots(): Array<View> = arrayOf(
+        binding.pageToday.root,
+        binding.pageHistory.root,
+        binding.pageMe.root
+    )
 
     private fun selectPage(index: Int, animate: Boolean = true) {
         if (index == pageIndex) return
-        val show = if (index == 0) binding.pageToday.root else binding.pageHistory.root
-        val hide = if (index == 0) binding.pageHistory.root else binding.pageToday.root
-        pageIndex = index
+        val pages = pageRoots()
 
-        show.visibility = View.VISIBLE
-        if (animate) {
-            show.alpha = 0f
-            show.translationY = dpInt(10f).toFloat()
-            show.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(260L)
-                .setInterpolator(EMPHASIS)
-                .start()
-            hide.animate()
-                .alpha(0f)
-                .translationY(-dpInt(6f).toFloat())
-                .setDuration(150L)
-                .withEndAction {
-                    hide.visibility = View.GONE
-                    hide.alpha = 1f
-                    hide.translationY = 0f
+        for (i in pages.indices) {
+            val view = pages[i]
+            if (i == index) {
+                view.visibility = View.VISIBLE
+                if (animate) {
+                    view.alpha = 0f
+                    view.translationY = dpInt(10f).toFloat()
+                    view.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(260L)
+                        .setInterpolator(EMPHASIS)
+                        .start()
+                } else {
+                    view.alpha = 1f
+                    view.translationY = 0f
                 }
-                .start()
-        } else {
-            show.alpha = 1f
-            show.translationY = 0f
-            hide.visibility = View.GONE
-            hide.alpha = 1f
-            hide.translationY = 0f
+            } else if (view.visibility == View.VISIBLE) {
+                if (animate) {
+                    view.animate()
+                        .alpha(0f)
+                        .translationY(-dpInt(6f).toFloat())
+                        .setDuration(150L)
+                        .withEndAction {
+                            view.visibility = View.GONE
+                            view.alpha = 1f
+                            view.translationY = 0f
+                        }
+                        .start()
+                } else {
+                    view.visibility = View.GONE
+                    view.alpha = 1f
+                    view.translationY = 0f
+                }
+            }
         }
 
+        pageIndex = index
         todayPage.setPaused(index != 0)
-        if (index == 0) todayPage.refresh(animate = false) else historyPage.refresh(animate = true)
+        when (index) {
+            0 -> todayPage.refresh(animate = false)
+            1 -> historyPage.refresh(animate = true)
+            2 -> mePage.refresh()
+        }
         updateNavIndicator(index, animate)
     }
 
@@ -139,7 +171,8 @@ class MainActivity : AppCompatActivity() {
             binding.bottomNav.post { updateNavIndicator(index, false) }
             return
         }
-        val target = width * (index + 0.5f) / 2f - dpInt(31f)
+        val slot = width / 3f
+        val target = slot * (index + 0.5f) - dpInt(31f)
         if (animate) {
             ValueAnimator.ofFloat(binding.navIndicator.translationX, target).apply {
                 duration = 280L
@@ -153,12 +186,13 @@ class MainActivity : AppCompatActivity() {
 
         val active = Palette.ACCENT
         val idle = Palette.TEXT_3
-        binding.navTodayIcon.setColorFilter(if (index == 0) active else idle)
-        binding.navHistoryIcon.setColorFilter(if (index == 1) active else idle)
-        binding.navTodayLabel.setTextColor(if (index == 0) active else idle)
-        binding.navHistoryLabel.setTextColor(if (index == 1) active else idle)
-        binding.navTodayLabel.typeface = typeface(index == 0)
-        binding.navHistoryLabel.typeface = typeface(index == 1)
+        val icons = arrayOf(binding.navTodayIcon, binding.navHistoryIcon, binding.navMeIcon)
+        val labels = arrayOf(binding.navTodayLabel, binding.navHistoryLabel, binding.navMeLabel)
+        for (i in icons.indices) {
+            icons[i].setColorFilter(if (i == index) active else idle)
+            labels[i].setTextColor(if (i == index) active else idle)
+            labels[i].typeface = typeface(i == index)
+        }
     }
 
     private fun typeface(active: Boolean): Typeface =

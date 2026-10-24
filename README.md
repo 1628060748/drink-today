@@ -17,6 +17,7 @@
 - **日历统计**：按月查看，每天按状态着色——达标（蓝色实心）、未达标（浅蓝实心）、未记录（无底色）、未来日期（浅灰文字）；今天带描边。点击某天可查看当天每条记录并逐条删除。
 - **本月概览**：达标天数、记录天数、日均饮水、连续达标天数，以及每日饮水柱状图（虚线为每日目标）。
 - **桌面小部件（4×2）**：桌面上直接看今日进度，点 4 个按钮即可快捷打卡；点击杯体/数字进入 App。小部件与 App 共用同一份数据，操作后立即互相同步，跨天自动刷新。
+- **我的页**：每日目标与快捷水量设置、JSON 导入导出、WebDAV 云同步、关于信息。底部导航为「今日 / 历史 / 我的」三栏。
 
 ## 构建与运行
 
@@ -44,6 +45,7 @@ adb install -r app/build/outputs/apk/debug/drink-today-app.apk
 | 语言 / UI | Kotlin + 原生 View（无 Compose、无 Material Components） | 单 Activity 双页面，控件全部可自绘，避免引入整套 UI 运行时 |
 | 视觉 | `CupView`、`CalendarView`、`BarChartView`、`WheelPicker` 四个自绘 View | 水波、日历格、柱状图、滚轮需要精细控制绘制与动效，自绘比组合控件更轻、更可控 |
 | 存储 | SharedPreferences + 单个 JSON 键 | 每天几条记录，读取一次性载入内存仅数 KB；省去数据库进程与注解处理 |
+| 网络 | `HttpURLConnection` + Basic Auth | 只需要 GET/PUT 一个 JSON 文件，不值得为此引入 OkHttp |
 | 依赖 | `androidx.core-ktx`、`androidx.appcompat` | 仅保留必要依赖，release 包体 0.65 MB |
 
 ### 目录结构
@@ -52,8 +54,10 @@ adb install -r app/build/outputs/apk/debug/drink-today-app.apk
 app/src/main/java/com/drinktoday/
 ├── MainActivity.kt            页面切换、底部导航、系统栏内边距
 ├── data/
-│   ├── DrinkStore.kt          记录/目标读写、月汇总、连续达标
-│   └── Models.kt              DrinkRecord / DaySummary / DayState
+│   ├── DrinkStore.kt          记录/目标读写、月汇总、连续达标、导入导出
+│   ├── WebDavConfig.kt        WebDAV 服务器/账号/上次同步时间
+│   ├── WebDavClient.kt        极简 WebDAV 客户端（GET/PUT）
+│   └── Models.kt              DrinkRecord / DaySummary / DayState / ImportResult
 ├── ui/
 │   ├── CupView.kt             玻璃杯、双频水波、气泡、水位动画、帧循环
 │   ├── CalendarView.kt        月历三态绘制与点击命中
@@ -67,12 +71,36 @@ app/src/main/java/com/drinktoday/
 │   ├── DayDetailSheet.kt      单日详情与删除
 │   ├── TouchFx.kt             统一按压反馈
 │   ├── Pills.kt               胶囊标签
+│   ├── MePage.kt              「我的」页：设置、导入导出、同步、关于
+│   ├── WebDavSheet.kt         WebDAV 账号配置弹层
 │   ├── Palette.kt             自绘用配色
 │   └── widget/
 │       ├── DrinkWidgetProvider.kt  小部件更新、快捷打卡广播、跨天刷新
 │       └── WidgetRenderer.kt       构建 RemoteViews（离屏渲染水杯位图）
 └── util/                      dp 换算、日期文案
 ```
+
+## 数据与同步
+
+### 导入 / 导出
+
+- **导出**：`我的 → 导出数据`，通过系统文件选择器（SAF）生成 `drink-today-backup-yyyyMMdd.json`，内容与本地存储格式完全一致。
+- **导入**：`我的 → 导入数据`，读取 JSON 后**合并**到本地：按记录 `id` 去重，不删除已有数据；同时采用文件中的目标与快捷水量（用于恢复备份）。
+- 不涉及存储权限：走 SAF，用户自行选择落点。
+
+### WebDAV 云同步
+
+- 支持坚果云、Nextcloud 等标准 WebDAV 服务。远端固定文件：`drink-today-backup.json`。
+- 配置：`我的 → WebDAV 账号`，填写服务器地址（必须 `https://`）、账号、**应用专用密码**，可先「测试连接」再保存。
+  - 坚果云示例：地址 `https://dav.jianguoyun.com/dav/`，密码在「账户信息 → 安全选项 → 添加应用」中生成。
+- 同步流程（`我的 → 立即同步`）：下载云端 → 按 `id` 合并进本地（**不覆盖本机目标与快捷水量**）→ 上传合并后的完整数据。
+- 并发与线程：网络 I/O 在后台线程；JSON 合并与设置写入回到主线程，避免与 UI 同时读写 `DrinkStore`。
+
+### 已知限制
+
+- 同步为**手动触发**，没有后台定时任务（避免常驻唤醒）。
+- 冲突策略是「记录取并集」，不处理同一条记录在两台设备被改成不同水量（当前实现里记录不可编辑）。
+- WebDAV 密码以明文存放在应用私有 `SharedPreferences`，未做加密；建议使用应用专用密码。
 
 ## 桌面小部件
 
@@ -124,6 +152,7 @@ app/src/main/java/com/drinktoday/
 - **目标变更会重算历史达标状态**：不保存每日目标快照，历史达标以当前目标判定。对单用户小工具而言，这样更符合"我现在的标准"。
 - **补录范围为最近 7 天**：覆盖"忘记打卡"的典型场景，避免弹层里塞入完整的日期选择器。
 - **仅浅色主题、仅竖屏**：与 HyperOS 天气/健康类应用的浅色轻量风格保持一致；如需深色模式，可在 `Palette` 与 `colors.xml` 增加一套夜间取值。
+- **同步无自动合并调度**：见「数据与同步 → 已知限制」。
 - **无提醒通知、无云同步**：定位为纯本地轻量工具。
 
 ## 版本记录
@@ -136,5 +165,6 @@ git log --oneline
 - `feat` 水杯视图与水波动效
 - `feat` 打卡首页、历史统计页与弹层
 - `polish` 杯型与预览校准、Lint 清理
+- `feat` 「我的」页：设置、JSON 导入导出、WebDAV 同步、关于（v1.2.0）
 - `fix` 快捷按钮数字裁切，快捷水量改为可自定义（v1.0.1）
 - `feat` 桌面小部件：进度 + 快捷打卡（v1.1.0）
