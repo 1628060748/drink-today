@@ -1,6 +1,12 @@
 package com.drinktoday.ui
 
 import android.animation.ValueAnimator
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.os.SystemClock
 import android.graphics.Typeface
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
@@ -20,6 +26,9 @@ import com.drinktoday.data.DrinkStore
 import com.drinktoday.databinding.PageTodayBinding
 import com.drinktoday.util.DateX
 import com.drinktoday.util.dpInt
+import kotlin.math.atan2
+import kotlin.math.hypot
+import kotlin.math.sqrt
 
 /**
  * 打卡首页：水杯水位、快捷记录、补录与设置。
@@ -111,6 +120,76 @@ class TodayPage(
         return builder
     }
 
+    // ------------------------------------------------------------ 重力与摇晃
+
+    private val sensorManager: SensorManager? by lazy {
+        activity.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+    }
+    private val accelerometer: Sensor? by lazy {
+        sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    }
+    private val gravityVec = FloatArray(3)
+    private var sensorsOn = false
+    private var lastShakeAt = 0L
+    private var smoothTilt = 0f
+
+    private val motionListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) = handleMotion(event.values)
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    /**
+     * 加速度计同时承担两件事：
+     *  1. 低通滤出重力方向 → 手机左右倾斜时水面跟着倾斜；
+     *  2. 合矢量减去重力 → 摇晃强度，映射成波幅与涟漪。
+     */
+    private fun handleMotion(values: FloatArray) {
+        val alpha = GRAVITY_SMOOTHING
+        for (i in 0..2) gravityVec[i] = alpha * gravityVec[i] + (1f - alpha) * values[i]
+
+        // 平放在桌面上时屏幕平面内没有重力分量，倾斜角没有意义，直接归零
+        val planar = hypot(gravityVec[0], gravityVec[1])
+        val roll = if (planar < FLAT_THRESHOLD) {
+            0f
+        } else {
+            Math.toDegrees(atan2(gravityVec[0].toDouble(), gravityVec[1].toDouble())).toFloat()
+        }
+        val target = (roll * TILT_GAIN).coerceIn(-MAX_TILT, MAX_TILT)
+        smoothTilt += (target - smoothTilt) * 0.22f
+        binding.cupView.setWaterTilt(smoothTilt)
+
+        val magnitude = sqrt(
+            values[0] * values[0] + values[1] * values[1] + values[2] * values[2]
+        )
+        val impulse = magnitude - SensorManager.GRAVITY_EARTH
+        if (impulse > SHAKE_THRESHOLD) {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastShakeAt > SHAKE_COOLDOWN_MS) {
+                lastShakeAt = now
+                binding.cupView.onShake(
+                    ((impulse - SHAKE_THRESHOLD) / SHAKE_SCALE).coerceIn(0.12f, 1f)
+                )
+            }
+        }
+    }
+
+    private fun startMotionSensors() {
+        if (sensorsOn) return
+        val manager = sensorManager ?: return
+        val sensor = accelerometer ?: return
+        manager.registerListener(motionListener, sensor, SensorManager.SENSOR_DELAY_UI)
+        sensorsOn = true
+    }
+
+    private fun stopMotionSensors() {
+        if (!sensorsOn) return
+        sensorManager?.unregisterListener(motionListener)
+        sensorsOn = false
+        gravityVec.fill(0f)
+        smoothTilt = 0f
+        binding.cupView.setWaterTilt(0f)
+    }
+
     // ------------------------------------------------------------ 数据刷新
 
     fun refresh(animate: Boolean) {
@@ -141,6 +220,8 @@ class TodayPage(
 
     fun setPaused(paused: Boolean) {
         binding.cupView.setPaused(paused)
+        // 传感器只在首页可见且应用在前台时工作，避免后台耗电
+        if (paused) stopMotionSensors() else startMotionSensors()
     }
 
     private fun renderHint() {
@@ -230,5 +311,20 @@ class TodayPage(
 
     private companion object {
         const val UNDO_DURATION = 3600L
+
+        /** 重力低通系数：越大越稳，越小越跟手 */
+        const val GRAVITY_SMOOTHING = 0.85f
+
+        /** 判定「手机平放」的平面重力阈值 */
+        const val FLAT_THRESHOLD = 2.5f
+
+        /** 倾斜增益与上限角度 */
+        const val TILT_GAIN = 0.8f
+        const val MAX_TILT = 11f
+
+        /** 摇晃判定：超出重力的加速度、映射到 0..1 的尺度、防抖间隔 */
+        const val SHAKE_THRESHOLD = 2.8f
+        const val SHAKE_SCALE = 9f
+        const val SHAKE_COOLDOWN_MS = 260L
     }
 }
