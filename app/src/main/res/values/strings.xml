@@ -106,6 +106,7 @@
     <string name="sync_need_config">请先配置 WebDAV 账号</string>
     <string name="sync_success">同步完成，合并 %1$d 条记录</string>
     <string name="sync_failed">同步失败：%1$s</string>
+    <string name="sync_failed_short">同步失败，详情见下方</string>
     <string name="webdav_title">WebDAV 同步</string>
     <string name="webdav_subtitle">把数据备份到自己的网盘，换机或多设备时合并记录</string>
     <string name="webdav_server">服务器地址</string>
@@ -114,10 +115,11 @@
     <string name="webdav_user_hint">邮箱或用户名</string>
     <string name="webdav_password">密码</string>
     <string name="webdav_password_hint">建议填写应用专用密码</string>
-    <string name="webdav_file">远端文件：%1$s</string>
+    <string name="webdav_file">写入地址：%1$s</string>
     <string name="webdav_security">密码仅保存在本机应用私有目录，不会上传到其他服务器</string>
     <string name="webdav_test">测试连接</string>
-    <string name="webdav_test_ok">连接成功</string>
+    <string name="webdav_test_ok_existing">连接成功，云端已有备份</string>
+    <string name="webdav_test_ok_new">连接成功，云端尚无备份，首次同步会创建</string>
     <string name="webdav_test_fail">连接失败：%1$s</string>
     <string name="webdav_https_only">请使用 https:// 开头的地址</string>
     <string name="webdav_server_empty">请填写服务器地址与账号</string>

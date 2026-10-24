@@ -217,6 +217,7 @@ class MePage(
     }
 
     private fun renderSyncState() {
+        binding.tvSyncState.setTextColor(Palette.TEXT_3)
         binding.tvSyncState.text = when {
             syncing -> activity.getString(R.string.me_syncing)
             webDav.lastSyncAt <= 0L -> activity.getString(R.string.me_never_synced)
@@ -339,8 +340,11 @@ class MePage(
 
     private fun finishSyncWithError(e: Exception) {
         syncing = false
-        renderSyncState()
-        toast(activity.getString(R.string.sync_failed, e.message.orEmpty()))
+        val detail = e.message.orEmpty().ifBlank { "未知错误" }
+        // 失败原因留在页面上，避免 Toast 一闪而过读不完
+        binding.tvSyncState.setTextColor(Palette.ERROR)
+        binding.tvSyncState.text = activity.getString(R.string.sync_failed, detail)
+        toast(activity.getString(R.string.sync_failed_short))
     }
 
     // ------------------------------------------------------------ 其它

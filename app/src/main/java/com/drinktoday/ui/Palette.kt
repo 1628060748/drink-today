@@ -11,6 +11,7 @@ object Palette {
     const val ACCENT_DEEP = 0xFF2C74EC.toInt()
     const val ACCENT_SOFT = 0xFFEAF2FF.toInt()
     const val DIVIDER = 0xFFEEF1F6.toInt()
+    const val ERROR = 0xFFE5484D.toInt()
 
     const val WATER_TOP = 0xFF6FCBFF.toInt()
     const val WATER_BOTTOM = 0xFF2E7BEA.toInt()

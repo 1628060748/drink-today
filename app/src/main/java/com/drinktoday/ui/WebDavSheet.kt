@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.drinktoday.R
+import androidx.core.widget.doAfterTextChanged
 import com.drinktoday.data.WebDavClient
 import com.drinktoday.data.WebDavConfig
 import com.drinktoday.data.WebDavEndpoint
@@ -34,8 +35,9 @@ class WebDavSheet(
         etServer.setText(config.server)
         etUser.setText(config.user)
         etPassword.setText(config.password)
-        root.findViewById<TextView>(R.id.tvFile).text =
-            context.getString(R.string.webdav_file, WebDavConfig.FILE_NAME)
+        // 输入时就展示最终写入地址，路径填错能立刻发现
+        etServer.doAfterTextChanged { renderResolvedUrl() }
+        renderResolvedUrl()
 
         root.findViewById<View>(R.id.btnTest).apply {
             setOnClickListener { testConnection() }
@@ -45,6 +47,13 @@ class WebDavSheet(
             setOnClickListener { save() }
             TouchFx.press(this, 0.97f)
         }
+    }
+
+    private fun renderResolvedUrl() {
+        val raw = etServer.text.toString().trim()
+        val resolved = if (raw.isEmpty()) WebDavConfig.FILE_NAME else WebDavClient.fileUrl(raw)
+        root.findViewById<TextView>(R.id.tvFile).text =
+            context.getString(R.string.webdav_file, resolved)
     }
 
     private fun currentEndpoint(): WebDavEndpoint? {
@@ -65,8 +74,13 @@ class WebDavSheet(
         val endpoint = currentEndpoint() ?: return
         Thread {
             val message = try {
-                WebDavClient.probe(endpoint)
-                context.getString(R.string.webdav_test_ok)
+                when (WebDavClient.probe(endpoint)) {
+                    WebDavClient.ProbeResult.FILE_EXISTS ->
+                        context.getString(R.string.webdav_test_ok_existing)
+
+                    WebDavClient.ProbeResult.READY_TO_CREATE ->
+                        context.getString(R.string.webdav_test_ok_new)
+                }
             } catch (e: Exception) {
                 context.getString(R.string.webdav_test_fail, e.message ?: "")
             }
