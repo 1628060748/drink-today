@@ -52,6 +52,10 @@ class MePage(
     ) { uri -> uri?.let(::importFrom) }
 
     init {
+        // 卡片按圆角裁剪，整行水波纹才不会溢出圆角
+        for (card in arrayOf(binding.cardSettings, binding.cardData, binding.cardSync, binding.cardAbout)) {
+            card.clipToOutline = true
+        }
         buildRows()
         refresh()
     }
@@ -133,14 +137,16 @@ class MePage(
         if (card.childCount > 0) {
             card.addView(
                 View(activity).apply { setBackgroundColor(Palette.DIVIDER) },
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpInt(1f))
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpInt(1f)).apply {
+                    marginStart = dpInt(18f)
+                }
             )
         }
 
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dpInt(14f), 0, dpInt(14f))
+            setPadding(dpInt(18f), dpInt(14f), dpInt(18f), dpInt(14f))
         }
 
         val texts = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }

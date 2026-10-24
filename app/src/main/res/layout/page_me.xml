@@ -51,10 +51,8 @@
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:paddingStart="18dp"
             android:paddingTop="2dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="2dp" />
+            android:paddingBottom="2dp"></LinearLayout>
 
         <!-- 数据 -->
         <TextView
@@ -74,10 +72,8 @@
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:paddingStart="18dp"
             android:paddingTop="2dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="2dp" />
+            android:paddingBottom="2dp"></LinearLayout>
 
         <!-- 云同步 -->
         <TextView
@@ -97,10 +93,8 @@
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:paddingStart="18dp"
             android:paddingTop="2dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="2dp" />
+            android:paddingBottom="2dp"></LinearLayout>
 
         <TextView
             android:id="@+id/tvSyncState"
@@ -131,10 +125,8 @@
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:paddingStart="18dp"
             android:paddingTop="2dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="4dp" />
+            android:paddingBottom="4dp"></LinearLayout>
 
         <TextView
             android:layout_width="match_parent"

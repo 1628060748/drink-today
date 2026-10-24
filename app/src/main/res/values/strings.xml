@@ -71,9 +71,9 @@
 
     <!-- 我的 -->
     <string name="nav_me">我的</string>
-    <string name="me_subtitle">数据、备份与关于</string>
+    <string name="me_subtitle">自己的数据，自己保管</string>
     <string name="me_section_settings">设置</string>
-    <string name="me_section_data">数据</string>
+    <string name="me_section_data">本地备份</string>
     <string name="me_section_sync">云端备份</string>
     <string name="me_section_about">关于</string>
     <string name="me_goal">每日目标</string>
