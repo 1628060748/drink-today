@@ -40,8 +40,64 @@ object WebDavClient {
 
     fun upload(endpoint: WebDavEndpoint, json: String) {
         val url = fileUrl(endpoint.server)
-        val (code, body) = execute(endpoint, url, "PUT", json)
+        var (code, body) = execute(endpoint, url, "PUT", json)
+
+        // 目录不存在（404/409）时尝试 MKCOL 建目录后重试一次
+        if (code == HttpURLConnection.HTTP_NOT_FOUND || code == HttpURLConnection.HTTP_CONFLICT) {
+            if (ensureCollection(endpoint)) {
+                val retry = execute(endpoint, url, "PUT", json)
+                code = retry.first
+                body = retry.second
+            }
+        }
         if (code !in 200..299) throw failure(code, url, body)
+    }
+
+    /**
+     * 确保目标目录存在：HEAD 检查，缺失则用 MKCOL 创建。
+     * 返回 true 表示目录可用（已存在或创建成功）。
+     */
+    fun ensureCollection(endpoint: WebDavEndpoint): Boolean {
+        val dirUrl = collectionUrl(endpoint.server)
+        val (code, _) = execute(endpoint, dirUrl, "HEAD", null)
+        if (code in 200..299 || code == 207) return true
+        if (code != HttpURLConnection.HTTP_NOT_FOUND) return false
+        return mkcol(endpoint, dirUrl)
+    }
+
+    /** 用 MKCOL 创建集合；HttpURLConnection 只放行标准方法，这里用反射改名。 */
+    private fun mkcol(endpoint: WebDavEndpoint, dirUrl: String): Boolean {
+        return try {
+            val connection = URL(dirUrl).openConnection() as HttpURLConnection
+            connection.connectTimeout = TIMEOUT_MS
+            connection.readTimeout = TIMEOUT_MS
+            connection.setRequestProperty("Authorization", basicAuth(endpoint.user, endpoint.password))
+            connection.setRequestProperty("User-Agent", "drink-today")
+            if (!forceMethod(connection, "MKCOL")) return false
+            val code = connection.responseCode
+            connection.disconnect()
+            // 405 表示已存在（部分服务器的响应）
+            code in 200..299 || code == 405
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun forceMethod(connection: HttpURLConnection, method: String): Boolean {
+        var clazz: Class<*>? = connection.javaClass
+        while (clazz != null) {
+            try {
+                val field = clazz.getDeclaredField("method")
+                field.isAccessible = true
+                field.set(connection, method)
+                return true
+            } catch (e: NoSuchFieldException) {
+                clazz = clazz.superclass
+            } catch (e: Exception) {
+                return false
+            }
+        }
+        return false
     }
 
     enum class ProbeResult { FILE_EXISTS, READY_TO_CREATE }
@@ -60,14 +116,68 @@ object WebDavClient {
 
         val dirUrl = collectionUrl(endpoint.server)
         val (dirCode, dirBody) = execute(endpoint, dirUrl, "HEAD", null)
-        return when {
-            dirCode in 200..299 || dirCode == 207 -> ProbeResult.READY_TO_CREATE
-            dirCode == HttpURLConnection.HTTP_NOT_FOUND -> throw IOException(
-                "目录不存在（404），请确认填写的是 WebDAV 目录\n" +
-                    "坚果云示例：https://dav.jianguoyun.com/dav/"
+        if (dirCode in 200..299 || dirCode == 207) {
+            // 目录存在但未必可写（坚果云根目录即如此），做一次写入探针
+            if (!writeTest(endpoint, dirUrl)) {
+                throw IOException(
+                    "该目录不可写入。多数网盘不允许直接写根目录，\n" +
+                        "请把地址指到一个子文件夹，如 https://dav.jianguoyun.com/dav/drink-today/"
+                )
+            }
+            return ProbeResult.READY_TO_CREATE
+        }
+
+        if (dirCode == HttpURLConnection.HTTP_NOT_FOUND) {
+            if (mkcol(endpoint, dirUrl) && writeTest(endpoint, dirUrl)) {
+                return ProbeResult.READY_TO_CREATE
+            }
+            throw IOException(
+                "目录不存在且无法自动创建。\n" +
+                    "请在网盘中新建文件夹（如 drink-today），地址填成\n" +
+                    "https://dav.jianguoyun.com/dav/drink-today/"
             )
-            dirCode == 405 || dirCode == 501 -> ProbeResult.READY_TO_CREATE
-            else -> throw failure(dirCode, dirUrl, dirBody)
+        }
+        if (dirCode == 405 || dirCode == 501) return ProbeResult.READY_TO_CREATE
+        throw failure(dirCode, dirUrl, dirBody)
+    }
+
+    /**
+     * 写权限探针：PUT 一个临时文件再删除。
+     * 只靠 HEAD 无法判断「目录可读但不可写」（坚果云根目录就是这种情况）。
+     */
+    private fun writeTest(endpoint: WebDavEndpoint, dirUrl: String): Boolean {
+        val probeUrl = dirUrl + ".drink-today-probe"
+        return try {
+            val payload = "ok".toByteArray(Charsets.UTF_8)
+            val put = (URL(probeUrl).openConnection() as HttpURLConnection).apply {
+                requestMethod = "PUT"
+                doOutput = true
+                connectTimeout = TIMEOUT_MS
+                readTimeout = TIMEOUT_MS
+                setRequestProperty("Authorization", basicAuth(endpoint.user, endpoint.password))
+                setRequestProperty("User-Agent", "drink-today")
+                setFixedLengthStreamingMode(payload.size)
+            }
+            put.outputStream.use { it.write(payload) }
+            val putCode = put.responseCode
+            put.disconnect()
+            if (putCode !in 200..299) return false
+
+            // 清理探针文件；失败也不影响结论
+            try {
+                val delete = (URL(probeUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "DELETE"
+                    connectTimeout = TIMEOUT_MS
+                    readTimeout = TIMEOUT_MS
+                    setRequestProperty("Authorization", basicAuth(endpoint.user, endpoint.password))
+                }
+                delete.responseCode
+                delete.disconnect()
+            } catch (ignored: Exception) {
+            }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -88,7 +198,8 @@ object WebDavClient {
             HttpURLConnection.HTTP_FORBIDDEN -> "认证失败，请检查账号或应用密码"
 
             HttpURLConnection.HTTP_NOT_FOUND ->
-                "路径不存在（404）。请确认填写的是 WebDAV 目录，例如坚果云 https://dav.jianguoyun.com/dav/"
+                "路径不存在（404）。网盘通常不允许直接写入根目录，" +
+                    "请把地址指到一个文件夹，如 https://dav.jianguoyun.com/dav/drink-today/"
 
             405 -> "服务器不允许写入该地址（405）"
             409 -> "远端父目录不存在（409）"
