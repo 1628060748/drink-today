@@ -111,7 +111,8 @@
     <string name="webdav_subtitle">把数据备份到自己的网盘，换机或多设备时合并记录</string>
     <string name="webdav_server">服务器地址</string>
     <string name="webdav_server_hint">https://dav.jianguoyun.com/dav/</string>
-    <string name="webdav_dir_hint">建议指向一个子文件夹，如 …/dav/drink-today/。多数网盘不允许直接写根目录；文件夹不存在时会自动创建。</string>
+    <string name="webdav_folder">子文件夹</string>
+    <string name="webdav_folder_hint">drink-today</string>
     <string name="webdav_user">账号</string>
     <string name="webdav_user_hint">邮箱或用户名</string>
     <string name="webdav_password">密码</string>

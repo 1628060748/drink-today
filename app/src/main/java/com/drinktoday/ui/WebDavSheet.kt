@@ -25,6 +25,7 @@ class WebDavSheet(
 ) : BaseSheet(context, R.layout.sheet_webdav) {
 
     private val etServer: EditText = root.findViewById(R.id.etServer)
+    private val etFolder: EditText = root.findViewById(R.id.etFolder)
     private val etUser: EditText = root.findViewById(R.id.etUser)
     private val etPassword: EditText = root.findViewById(R.id.etPassword)
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -33,10 +34,12 @@ class WebDavSheet(
         window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
         etServer.setText(config.server)
+        etFolder.setText(config.folder)
         etUser.setText(config.user)
         etPassword.setText(config.password)
         // 输入时就展示最终写入地址，路径填错能立刻发现
         etServer.doAfterTextChanged { renderResolvedUrl() }
+        etFolder.doAfterTextChanged { renderResolvedUrl() }
         renderResolvedUrl()
 
         root.findViewById<View>(R.id.btnTest).apply {
@@ -50,8 +53,14 @@ class WebDavSheet(
     }
 
     private fun renderResolvedUrl() {
-        val raw = etServer.text.toString().trim()
-        val resolved = if (raw.isEmpty()) WebDavConfig.FILE_NAME else WebDavClient.fileUrl(raw)
+        val server = etServer.text.toString().trim()
+        val resolved = if (server.isEmpty()) {
+            WebDavConfig.FILE_NAME
+        } else {
+            WebDavClient.fileUrl(
+                WebDavEndpoint(server, "", "", etFolder.text.toString())
+            )
+        }
         root.findViewById<TextView>(R.id.tvFile).text =
             context.getString(R.string.webdav_file, resolved)
     }
@@ -67,7 +76,7 @@ class WebDavSheet(
             toast(context.getString(R.string.webdav_https_only))
             return null
         }
-        return WebDavEndpoint(server, user, etPassword.text.toString())
+        return WebDavEndpoint(server, user, etPassword.text.toString(), etFolder.text.toString())
     }
 
     private fun testConnection() {
@@ -91,6 +100,7 @@ class WebDavSheet(
     private fun save() {
         val endpoint = currentEndpoint() ?: return
         config.server = endpoint.server
+        config.folder = endpoint.folder
         config.user = endpoint.user
         config.password = endpoint.password
         onSaved()

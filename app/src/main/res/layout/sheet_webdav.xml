@@ -72,14 +72,29 @@
                 android:textSize="14sp" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/webdav_folder"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etFolder"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:includeFontPadding="false"
-                android:lineSpacingExtra="2dp"
-                android:text="@string/webdav_dir_hint"
-                android:textColor="@color/text_tertiary"
-                android:textSize="11.5sp" />
+                android:background="@drawable/bg_input"
+                android:hint="@string/webdav_folder_hint"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_tertiary"
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="wrap_content"

@@ -15,21 +15,27 @@ object WebDavClient {
 
     private const val TIMEOUT_MS = 15000
 
-    /**
-     * 兼容两种填法：
-     *  - 目录地址（以 / 结尾）：自动拼上固定文件名；
-     *  - 完整文件地址（以 .json 结尾）：直接使用，避免拼成 xxx.json/xxx.json 导致 404。
-     */
-    fun fileUrl(server: String): String {
+    /** 服务器地址 + 子文件夹，结果为以 / 结尾的目录地址。 */
+    fun folderUrl(server: String, folder: String): String {
         val trimmed = server.trim()
-        if (trimmed.endsWith(".json", ignoreCase = true)) return trimmed
         val base = if (trimmed.endsWith("/")) trimmed else "$trimmed/"
-        return base + WebDavConfig.FILE_NAME
+        val name = folder.trim().trim('/')
+        if (name.isEmpty()) return base
+        // 万一用户把目录也写进了地址，避免重复拼接
+        if (base.trimEnd('/').endsWith("/$name")) return base
+        return base + name + "/"
+    }
+
+    /** 目标文件的完整地址；服务器地址若直接填了 .json 则原样使用。 */
+    fun fileUrl(endpoint: WebDavEndpoint): String {
+        val server = endpoint.server.trim()
+        if (server.endsWith(".json", ignoreCase = true)) return server
+        return folderUrl(server, endpoint.folder) + WebDavConfig.FILE_NAME
     }
 
     /** 返回远端内容；文件不存在返回 null。 */
     fun download(endpoint: WebDavEndpoint): String? {
-        val url = fileUrl(endpoint.server)
+        val url = fileUrl(endpoint)
         val (code, body) = execute(endpoint, url, "GET", null)
         return when {
             code in 200..299 -> body
@@ -39,7 +45,7 @@ object WebDavClient {
     }
 
     fun upload(endpoint: WebDavEndpoint, json: String) {
-        val url = fileUrl(endpoint.server)
+        val url = fileUrl(endpoint)
         var (code, body) = execute(endpoint, url, "PUT", json)
 
         // 目录不存在（404/409）时尝试 MKCOL 建目录后重试一次
@@ -58,7 +64,7 @@ object WebDavClient {
      * 返回 true 表示目录可用（已存在或创建成功）。
      */
     fun ensureCollection(endpoint: WebDavEndpoint): Boolean {
-        val dirUrl = collectionUrl(endpoint.server)
+        val dirUrl = collectionUrl(endpoint)
         val (code, _) = execute(endpoint, dirUrl, "HEAD", null)
         if (code in 200..299 || code == 207) return true
         if (code != HttpURLConnection.HTTP_NOT_FOUND) return false
@@ -109,12 +115,12 @@ object WebDavClient {
      *     （此前只看文件 404，会把「路径填错」误判为「连接成功」）。
      */
     fun probe(endpoint: WebDavEndpoint): ProbeResult {
-        val fileUrl = fileUrl(endpoint.server)
+        val fileUrl = fileUrl(endpoint)
         val (code, body) = execute(endpoint, fileUrl, "GET", null)
         if (code in 200..299) return ProbeResult.FILE_EXISTS
         if (code != HttpURLConnection.HTTP_NOT_FOUND) throw failure(code, fileUrl, body)
 
-        val dirUrl = collectionUrl(endpoint.server)
+        val dirUrl = collectionUrl(endpoint)
         val (dirCode, dirBody) = execute(endpoint, dirUrl, "HEAD", null)
         if (dirCode in 200..299 || dirCode == 207) {
             // 目录存在但未必可写（坚果云根目录即如此），做一次写入探针
@@ -181,14 +187,14 @@ object WebDavClient {
         }
     }
 
-    /** 由文件地址反推所在目录；也兼容直接填完整文件地址的情况。 */
-    fun collectionUrl(server: String): String {
-        val trimmed = server.trim()
-        if (trimmed.endsWith(".json", ignoreCase = true)) {
-            val index = trimmed.lastIndexOf('/')
-            return if (index > 0) trimmed.substring(0, index + 1) else trimmed
+    /** 目标文件所在目录；服务器地址直接填了 .json 时取其父目录。 */
+    fun collectionUrl(endpoint: WebDavEndpoint): String {
+        val server = endpoint.server.trim()
+        if (server.endsWith(".json", ignoreCase = true)) {
+            val index = server.lastIndexOf('/')
+            return if (index > 0) server.substring(0, index + 1) else server
         }
-        return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+        return folderUrl(server, endpoint.folder)
     }
 
     private fun failure(code: Int, url: String, body: String): IOException {

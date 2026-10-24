@@ -12,12 +12,14 @@ import android.content.Context
 data class WebDavEndpoint(
     val server: String,
     val user: String,
-    val password: String
+    val password: String,
+    /** 服务器地址下的子文件夹；为空表示直接写入服务器地址 */
+    val folder: String = WebDavConfig.DEFAULT_FOLDER
 ) {
     val isConfigured: Boolean
         get() = server.isNotBlank() && user.isNotBlank()
 
-    fun endpoint(): WebDavEndpoint = WebDavEndpoint(server, user, password)
+    fun endpoint(): WebDavEndpoint = WebDavEndpoint(server, user, password, folder)
 }
 
 class WebDavConfig private constructor(context: Context) {
@@ -37,6 +39,10 @@ class WebDavConfig private constructor(context: Context) {
         get() = prefs.getString(KEY_PASSWORD, "").orEmpty()
         set(value) = prefs.edit().putString(KEY_PASSWORD, value).apply()
 
+    var folder: String
+        get() = prefs.getString(KEY_FOLDER, DEFAULT_FOLDER).orEmpty()
+        set(value) = prefs.edit().putString(KEY_FOLDER, value.trim().trim('/')).apply()
+
     var lastSyncAt: Long
         get() = prefs.getLong(KEY_LAST_SYNC, 0L)
         set(value) = prefs.edit().putLong(KEY_LAST_SYNC, value).apply()
@@ -44,17 +50,21 @@ class WebDavConfig private constructor(context: Context) {
     val isConfigured: Boolean
         get() = server.isNotBlank() && user.isNotBlank()
 
-    fun endpoint(): WebDavEndpoint = WebDavEndpoint(server, user, password)
+    fun endpoint(): WebDavEndpoint = WebDavEndpoint(server, user, password, folder)
 
     companion object {
         /** 远端固定文件名，避免用户配置目录后还要填文件名。 */
         const val FILE_NAME = "drink-today-backup.json"
+
+        /** 默认子文件夹 */
+        const val DEFAULT_FOLDER = "drink-today"
 
         private const val PREF_NAME = "webdav"
         private const val KEY_SERVER = "server"
         private const val KEY_USER = "user"
         private const val KEY_PASSWORD = "password"
         private const val KEY_LAST_SYNC = "lastSync"
+        private const val KEY_FOLDER = "folder"
 
         @Volatile
         private var instance: WebDavConfig? = null
