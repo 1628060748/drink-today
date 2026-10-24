@@ -94,7 +94,6 @@
     <string name="me_version">版本</string>
     <string name="me_github">开源地址</string>
     <string name="me_github_sub">github.com/1628060748/drink-today</string>
-    <string name="me_tech">Kotlin + Canvas 自绘，仅依赖 core-ktx 与 appcompat；数据保存在本机 JSON，除 WebDAV 同步外不联网。</string>
     <string name="me_no_browser">没有可用的浏览器</string>
     <string name="me_footer">今天喝水了吗 · 一个轻量的饮水打卡工具</string>
 

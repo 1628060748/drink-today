@@ -139,17 +139,6 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:lineSpacingExtra="3dp"
-            android:text="@string/me_tech"
-            android:textColor="@color/text_tertiary"
-            android:textSize="11.5sp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:gravity="center"
             android:text="@string/me_footer"
