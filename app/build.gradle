@@ -41,6 +41,21 @@ android {
     }
 }
 
+/**
+ * 安装包产物固定命名：
+ *   debug   -> drink-today-app.apk
+ *   release -> drink-today-app-release.apk
+ * 避免默认的 app-debug.apk 在多次构建、传输时难以区分。
+ */
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def suffix = variant.buildType == 'release' ? '-release' : ''
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("drink-today-app${suffix}.apk")
+        }
+    }
+}
+
 dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.appcompat:appcompat:1.6.1'

@@ -27,15 +27,15 @@
 export JAVA_HOME="D:/Environment/Java/jdk-17.0.12"
 
 ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/drink-today-app.apk
 ```
 
 `local.properties` 中的 `sdk.dir` 指向本机 SDK（`D:\Environment\sdk\android`），换机器时请修改或由 Android Studio 重新生成（该文件不入库）。
 
 构建产物：
 
-- `app/build/outputs/apk/debug/app-debug.apk`（约 3.2 MB，含调试信息）
-- `app/build/outputs/apk/release/app-release-unsigned.apk`（约 **0.65 MB**，已开启 R8 混淆与资源压缩，需自行签名后安装）
+- `app/build/outputs/apk/debug/drink-today-app.apk`（约 3.2 MB，含调试信息）
+- `app/build/outputs/apk/release/drink-today-app-release.apk`（约 **0.65 MB**，未签名，已开启 R8 混淆与资源压缩，需自行签名后安装）
 
 ## 技术方案
 
