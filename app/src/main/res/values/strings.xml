@@ -71,7 +71,7 @@
 
     <!-- 我的 -->
     <string name="nav_me">我的</string>
-    <string name="me_subtitle">自己的数据，自己保管</string>
+    <string name="me_subtitle">记录安心存放，随时可取回</string>
     <string name="me_section_settings">设置</string>
     <string name="me_section_data">本地备份</string>
     <string name="me_section_sync">云端备份</string>
